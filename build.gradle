@@ -1,0 +1,67 @@
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+import static org.gradle.api.tasks.wrapper.Wrapper.DistributionType.*
+
+buildscript {
+    ext {
+        springBootVersion = '1.5.4.RELEASE'
+    }
+
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.13.0'
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
+    }
+}
+
+plugins {
+    id "com.zoltu.git-versioning" version "3.0.3"
+    id 'pl.allegro.tech.build.axion-release' version '1.5.0'
+    id 'nebula.optional-base' version '3.1.0'
+}
+
+apply plugin: 'base'
+
+ZoltuGitVersioning {
+    customDescribeProcessor { describeResults ->
+        def matcher = (describeResults =~ /[0-9A-Za-z\.\-]*([0-9]+?)\.([0-9]+?)\.([0-9]+?)(?:\-([0-9A-Za-z\.\-]+))?\-([0-9]+?)\-g([a-zA-Z0-9]+)/)
+        matcher.matches()
+        [
+                major      : matcher.group(1),
+                minor      : matcher.group(2),
+                patch      : matcher.group(3),
+                tags       : matcher.group(4),
+                commitCount: matcher.group(5),
+                sha        : matcher.group(6),
+        ]
+    }
+}
+
+ext {
+    buildNumber = System.getenv().BUILD_NUMBER
+    versionInfo = ZoltuGitVersioning.versionInfo
+    currentDate = DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDateTime.now())
+    versionProperties = [
+            version    : version,
+            buildNumber: buildNumber ?: 'dev',
+            commitHash : versionInfo.sha,
+            buildDate  : currentDate
+    ]
+}
+
+repositories {
+    jcenter()
+}
+
+scmVersion {
+    versionIncrementer 'incrementMinorIfNotOnRelease', [releaseBranchPattern: 'release-.*']
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.0'
+    distributionType = ALL
+}
