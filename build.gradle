@@ -81,6 +81,8 @@ dependencies {
     compile files("lib/jfxrt.jar")
     compile("com.google.guava:guava")
     compile("com.github.nginate:commons-lang:1.0.0")
+    compile("com.fasterxml.jackson.core:jackson-databind")
+    compile("org.hibernate:hibernate-core")
 
     compile("org.projectlombok:lombok:1.16.16", optional)
     compile("com.google.code.findbugs:jsr305:3.0.1", optional)

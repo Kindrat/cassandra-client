@@ -6,6 +6,7 @@ import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.TableMetadata;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
+import com.github.kindrat.cassandra.client.util.UIUtil;
 import com.github.nginate.commons.lang.NStrings;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -16,13 +17,16 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.engine.jdbc.internal.DDLFormatterImpl;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.cassandra.config.CassandraSessionFactoryBean;
@@ -43,6 +47,7 @@ import static org.springframework.util.ReflectionUtils.getField;
 
 @Slf4j
 public class MainController {
+    private final TextArea ddlText = new TextArea();
 
     @Autowired
     private BeanFactory beanFactory;
@@ -79,26 +84,39 @@ public class MainController {
     @PostConstruct
     public void init() {
         disable(plusBtn, minusBtn, queryTb, runBtn, tables, applyBtn, cancelBtn);
+        ddlText.setEditable(false);
+
         queryTb.textProperty().addListener((observable, oldValue, newValue) -> runBtn.setDisable(newValue.isEmpty()));
         tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         tables.setOnContextMenuRequested(this::onTableContextMenu);
-        tableContext = new TableListContext(localeService, () -> {
-            log.info("DDL");
-        }, () -> {
+        tableContext = new TableListContext(localeService, this::showDDLForTable, () -> {
+            clear(editorAnchor);
             log.info("DATA");
         });
+    }
+
+    private void showDDLForTable() {
+        clear(editorAnchor);
+        String selected = tables.getSelectionModel().getSelectedItem();
+        TableMetadata tableMetadata = this.tableMetadata.get(selected);
+        String ddl = tableMetadata.toString();
+
+        String formattedDdl = DDLFormatterImpl.INSTANCE.format(ddl)
+                .replaceAll("AND", "\n\tAND");
+        ddlText.setText(formattedDdl);
+        editorAnchor.getChildren().add(ddlText);
+        UIUtil.fillParent(ddlText);
+        ddlText.setVisible(true);
     }
 
     @FXML
     public void onConnectClick(ActionEvent event) {
         beanFactory.getBean("newConnectionBox", (BiConsumer<String, String>) this::loadTables);
-        log.info("Connect click event : {}", event);
     }
 
     @FXML
     public void onAboutClick(ActionEvent event) {
         beanFactory.getBean("aboutBox", Stage.class);
-        log.info("About click event : {}", event);
     }
 
     @FXML
@@ -122,6 +140,7 @@ public class MainController {
 
     @SneakyThrows
     private void loadTables(String url, String keyspace) {
+        fireLogEvent("Connecting to {}/{} ...", url, keyspace);
         tables.setItems(emptyObservableList());
         serverLbl.setText("");
         disable(plusBtn, minusBtn, queryTb, runBtn, tables, applyBtn, cancelBtn);
@@ -176,5 +195,10 @@ public class MainController {
         String message = NStrings.format(template, args);
         log.info(message);
         eventLbl.setText(message);
+    }
+
+    private void clear(Pane pane) {
+        ObservableList<Node> children = pane.getChildren();
+        children.clear();
     }
 }
