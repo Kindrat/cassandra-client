@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="true">
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+    <conversionRule conversionWord="wex" converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter" />
+
+    <!-- configuration stuff that is valid for all environments -->
+    <if condition='isDefined("appBaseDir") &amp;&amp; isDefined("logfilename")'>
+        <then>
+            <appender name="info-file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <File>${appBaseDir}/log/${logfilename}.log</File>
+                <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                    <level>INFO</level>
+                </filter>
+                <encoder>
+                    <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr([%5p]) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wex</pattern>
+                </encoder>
+                <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                    <fileNamePattern>${appBaseDir}/log/old/info/${logfilename}.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+                    <maxHistory>7</maxHistory>
+                </rollingPolicy>
+            </appender>
+            <appender name="info-file-async" class="ch.qos.logback.classic.AsyncAppender">
+                <appender-ref ref="info-file" />
+            </appender>
+
+            <appender name="debug-file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <File>${appBaseDir}/log/${logfilename}.debug.log</File>
+                <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                    <level>DEBUG</level>
+                </filter>
+                <encoder>
+                    <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr([%5p]) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wex</pattern>
+                </encoder>
+                <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                    <fileNamePattern>${appBaseDir}/log/old/debug/${logfilename}.%d{yyyy-MM-dd_HH}.debug.log.gz</fileNamePattern>
+                    <maxHistory>168</maxHistory>
+                </rollingPolicy>
+            </appender>
+            <appender name="debug-file-async" class="ch.qos.logback.classic.AsyncAppender">
+                <appender-ref ref="debug-file" />
+            </appender>
+
+            <root level="INFO">
+                <appender-ref ref="info-file-async" />
+                <appender-ref ref="debug-file-async" />
+            </root>
+        </then>
+        <else>
+            <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder>
+                    <!--<pattern>%d|%-5level|%logger{0} - %msg%n</pattern>-->
+                    <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr([%5p]) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wex</pattern>
+                </encoder>
+            </appender>
+            <appender name="STDOUT-ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+                <appender-ref ref="STDOUT" />
+            </appender>
+
+            <root level="INFO">
+                <appender-ref ref="STDOUT-ASYNC"/>
+            </root>
+        </else>
+    </if>
+
+    <logger name="com.github.kindrat" level="DEBUG"/>
+</configuration>
