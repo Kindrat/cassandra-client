@@ -131,8 +131,8 @@
                                                    AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
                                                    AnchorPane.topAnchor="0.0">
                                             <items>
-                                                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0"
-                                                            prefWidth="160.0"/>
+                                                <AnchorPane fx:id="editorAnchor" minHeight="0.0" minWidth="0.0"
+                                                            prefHeight="100.0" prefWidth="160.0"/>
                                                 <AnchorPane maxHeight="40.0" minHeight="40.0" minWidth="0.0"
                                                             prefHeight="40.0" prefWidth="160.0"
                                                             SplitPane.resizableWithParent="false">

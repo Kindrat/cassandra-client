@@ -4,17 +4,22 @@ import com.datastax.driver.core.AbstractTableMetadata;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.TableMetadata;
+import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
+import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
 import com.github.nginate.commons.lang.NStrings;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextField;
+import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -42,9 +47,12 @@ public class MainController {
     @Autowired
     private BeanFactory beanFactory;
     @Autowired
+    private MessageByLocaleService localeService;
+    @Autowired
     private View view;
 
     private CassandraAdminTemplate cassandraAdminTemplate;
+    private ContextMenu tableContext;
     private Map<String, TableMetadata> tableMetadata;
 
     @FXML
@@ -65,12 +73,20 @@ public class MainController {
     private Label eventLbl;
     @FXML
     private Label serverLbl;
+    @FXML
+    private AnchorPane editorAnchor;
 
     @PostConstruct
     public void init() {
         disable(plusBtn, minusBtn, queryTb, runBtn, tables, applyBtn, cancelBtn);
         queryTb.textProperty().addListener((observable, oldValue, newValue) -> runBtn.setDisable(newValue.isEmpty()));
         tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        tables.setOnContextMenuRequested(this::onTableContextMenu);
+        tableContext = new TableListContext(localeService, () -> {
+            log.info("DDL");
+        }, () -> {
+            log.info("DATA");
+        });
     }
 
     @FXML
@@ -94,6 +110,15 @@ public class MainController {
             enable(plusBtn, minusBtn);
         }
     }
+
+    private void onTableContextMenu(ContextMenuEvent event) {
+        ObservableList<String> selectedItems = tables.getSelectionModel().getSelectedItems();
+        if (!selectedItems.isEmpty()) {
+            String selectedItem = selectedItems.get(0);
+            tableContext.show(tables, event.getScreenX(), event.getScreenY());
+        }
+    }
+
 
     @SneakyThrows
     private void loadTables(String url, String keyspace) {
