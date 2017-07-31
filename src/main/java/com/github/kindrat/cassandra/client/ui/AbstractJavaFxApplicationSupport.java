@@ -17,6 +17,7 @@ public abstract class AbstractJavaFxApplicationSupport extends javafx.applicatio
     @Override
     public void init() throws Exception {
         context = new SpringApplicationBuilder(CassandraClientGUI.class).web(false).run(savedArgs);
+        context.registerShutdownHook();
         context.getAutowireCapableBeanFactory().autowireBean(this);
     }
 

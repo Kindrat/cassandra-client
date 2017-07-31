@@ -2,16 +2,21 @@ package com.github.kindrat.cassandra.client.ui;
 
 import com.datastax.driver.core.AbstractTableMetadata;
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.CodecRegistry;
+import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.TypeCodec;
 import com.github.kindrat.cassandra.client.filter.DataFilter;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
-import javafx.beans.property.SimpleStringProperty;
+import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -26,6 +31,9 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.ContextMenuEvent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
@@ -43,7 +51,6 @@ import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -116,6 +123,17 @@ public class MainController {
                     showDataForTable(tableName);
                 });
         dataTbl.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        dataTbl.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        dataTbl.getSelectionModel().setCellSelectionEnabled(true);
+    }
+
+    public void onWindowLoad() {
+        TableCellCopyHandler copyHandler = new TableCellCopyHandler(dataTbl);
+        getAccelerators().put(new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_ANY), copyHandler);
+    }
+
+    private ObservableMap<KeyCombination, Runnable> getAccelerators() {
+        return view.getPrimaryStage().getScene().getAccelerators();
     }
 
     private void showDDLForTable(String tableName) {
@@ -139,12 +157,15 @@ public class MainController {
         dataTbl.getItems().clear();
 
         tableMetadata.getColumns().forEach(columnMetadata -> {
-            TableColumn<Row, String> column = new TableColumn<>();
+            DataType type = columnMetadata.getType();
+
+            TableColumn<Row, Object> column = new TableColumn<>();
             Label columnLabel = new Label(columnMetadata.getName());
-            columnLabel.setTooltip(new Tooltip(columnMetadata.getType().asFunctionParameterString()));
+            columnLabel.setTooltip(new Tooltip(type.asFunctionParameterString()));
             column.setCellValueFactory(param -> {
-                String value = Objects.toString(param.getValue().getObject(columnMetadata.getName()), "null");
-                return new SimpleStringProperty(value);
+                TypeCodec<Object> codec = CodecRegistry.DEFAULT_INSTANCE.codecFor(type);
+                Object object = param.getValue().get(columnMetadata.getName(), codec);
+                return new SimpleObjectProperty<>(object);
             });
             column.setGraphic(columnLabel);
             dataTbl.getColumns().add(column);

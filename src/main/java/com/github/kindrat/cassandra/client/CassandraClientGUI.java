@@ -1,6 +1,7 @@
 package com.github.kindrat.cassandra.client;
 
 import com.github.kindrat.cassandra.client.ui.AbstractJavaFxApplicationSupport;
+import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.View;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
@@ -32,5 +33,7 @@ public class CassandraClientGUI extends AbstractJavaFxApplicationSupport {
         primaryStage.setResizable(true);
         primaryStage.centerOnScreen();
         primaryStage.show();
+
+        ((MainController) view.getController()).onWindowLoad();
     }
 }
