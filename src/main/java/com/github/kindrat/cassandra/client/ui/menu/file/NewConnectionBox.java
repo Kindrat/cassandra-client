@@ -29,6 +29,7 @@ public class NewConnectionBox extends Stage {
 
         initModality(Modality.APPLICATION_MODAL);
         initOwner(parent);
+        setTitle(localeService.getMessage("ui.menu.file.connect.title"));
 
         VBox connectBox = new VBox(uiProperties.getNewConnectSpacing());
         connectBox.setAlignment(Pos.CENTER);
@@ -60,6 +61,7 @@ public class NewConnectionBox extends Stage {
         keyspace.setTooltip(new Tooltip(localeService.getMessage("ui.menu.file.connect.keyspace.tooltip")));
         keyspace.setMinWidth(width - 10);
         keyspace.setMaxWidth(width - 10);
+        keyspace.setOnAction(this::handleClick);
         return keyspace;
     }
 
