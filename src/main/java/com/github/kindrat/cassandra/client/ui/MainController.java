@@ -41,6 +41,7 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hibernate.engine.jdbc.internal.DDLFormatterImpl;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +53,8 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.github.nginate.commons.lang.NStrings.format;
@@ -65,6 +68,8 @@ import static org.springframework.util.ReflectionUtils.getField;
 
 @Slf4j
 public class MainController {
+    private static final Pattern tableInSelect = Pattern.compile(
+            "([sS][eE][lL][eE][cC][tT])(\\ \\S+\\ )([fF][rR][oO][mM]\\ )(\\S+)");
     @Autowired
     private BeanFactory beanFactory;
     @Autowired
@@ -111,6 +116,24 @@ public class MainController {
     public void init() {
         disable(plusBtn, minusBtn, queryTb, runBtn, tables, applyBtn, cancelBtn);
         queryTb.textProperty().addListener((observable, old, newValue) -> runBtn.setDisable(newValue.isEmpty()));
+        runBtn.setOnAction(
+                event -> {
+                    String rawQuery = queryTb.getText();
+                    try {
+                        ResultSet resultSet = cassandraAdminTemplate.query(rawQuery);
+                        Matcher matcher = tableInSelect.matcher(rawQuery);
+                        if (matcher.find()) {
+                            String tableName = matcher.group(4);
+                            showDataRows(tableName, resultSet.all());
+                        }
+                    } catch (Exception e) {
+                        fireLogEvent("Statement failed : {}", e.getMessage());
+                        dataTbl.setVisible(false);
+                        ddlTextArea.setText(ExceptionUtils.getStackTrace(e));
+                        ddlTextArea.setVisible(true);
+                    }
+                }
+        );
         tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         tables.setOnContextMenuRequested(this::onTableContextMenu);
         tableContext = new TableListContext(localeService,
@@ -149,6 +172,16 @@ public class MainController {
     }
 
     private void showDataForTable(String tableName) {
+        long tableSize = cassandraAdminTemplate.count(tableName);
+        fireLogEvent("Loading data for {}", tableName);
+        ResultSet resultSet = cassandraAdminTemplate.query(format("select * from {}", tableName));
+        List<Row> loadedRows = resultSet.all();
+        fireLogEvent("Loaded {} entries from {}", tableSize, tableName);
+
+        showDataRows(tableName, loadedRows);
+    }
+
+    private void showDataRows(String tableName, List<Row> loadedRows) {
         ddlTextArea.setVisible(false);
         TableMetadata tableMetadata = getTableMetadata(tableName);
 
@@ -171,10 +204,6 @@ public class MainController {
             dataTbl.getColumns().add(column);
         });
 
-        long tableSize = cassandraAdminTemplate.count(tableName);
-        fireLogEvent("Loading data for {}", tableName);
-        ResultSet resultSet = cassandraAdminTemplate.query(format("select * from {}", tableName));
-        List<Row> loadedRows = resultSet.all();
         ObservableList<Row> original = FXCollections.observableArrayList(loadedRows);
         dataTbl.setItems(original);
 
@@ -190,8 +219,6 @@ public class MainController {
                 });
             }
         });
-
-        fireLogEvent("Loaded {} entries from {}", tableSize, tableName);
 
         tableDataPnl.setVisible(true);
     }

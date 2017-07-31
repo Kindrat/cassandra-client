@@ -22,12 +22,12 @@ What it already can:
 * show table DDL
 * show table data (simple table view with header)
 * apply simple filter to loaded data
+* execute query
 
 Planned:
 * composite filters
-* respect field type in table view and filtering
+* respect field type in filtering
 * editable values
-* execute query
 * add/delete tables
 * add/save connections
 * packaging
