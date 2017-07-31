@@ -6,7 +6,6 @@ import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.TableMetadata;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
-import com.github.kindrat.cassandra.client.util.UIUtil;
 import com.github.nginate.commons.lang.NStrings;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -22,6 +21,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import lombok.SneakyThrows;
@@ -47,8 +47,6 @@ import static org.springframework.util.ReflectionUtils.getField;
 
 @Slf4j
 public class MainController {
-    private final TextArea ddlText = new TextArea();
-
     @Autowired
     private BeanFactory beanFactory;
     @Autowired
@@ -80,33 +78,39 @@ public class MainController {
     private Label serverLbl;
     @FXML
     private AnchorPane editorAnchor;
+    @FXML
+    private TextArea ddlTextArea;
+    @FXML
+    private GridPane tableDataPnl;
 
     @PostConstruct
     public void init() {
         disable(plusBtn, minusBtn, queryTb, runBtn, tables, applyBtn, cancelBtn);
-        ddlText.setEditable(false);
-
         queryTb.textProperty().addListener((observable, oldValue, newValue) -> runBtn.setDisable(newValue.isEmpty()));
         tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         tables.setOnContextMenuRequested(this::onTableContextMenu);
-        tableContext = new TableListContext(localeService, this::showDDLForTable, () -> {
-            clear(editorAnchor);
-            log.info("DATA");
-        });
+        tableContext = new TableListContext(localeService, this::showDDLForTable, this::showDataForTable);
     }
 
     private void showDDLForTable() {
-        clear(editorAnchor);
-        String selected = tables.getSelectionModel().getSelectedItem();
-        TableMetadata tableMetadata = this.tableMetadata.get(selected);
+        tableDataPnl.setVisible(false);
+        TableMetadata tableMetadata = getTableMetadata();
         String ddl = tableMetadata.toString();
 
         String formattedDdl = DDLFormatterImpl.INSTANCE.format(ddl)
                 .replaceAll("AND", "\n\tAND");
-        ddlText.setText(formattedDdl);
-        editorAnchor.getChildren().add(ddlText);
-        UIUtil.fillParent(ddlText);
-        ddlText.setVisible(true);
+        ddlTextArea.setText(formattedDdl);
+        ddlTextArea.setVisible(true);
+    }
+
+    private void showDataForTable() {
+        ddlTextArea.setVisible(false);
+        tableDataPnl.setVisible(true);
+    }
+
+    private TableMetadata getTableMetadata() {
+        String selected = tables.getSelectionModel().getSelectedItem();
+        return this.tableMetadata.get(selected);
     }
 
     @FXML

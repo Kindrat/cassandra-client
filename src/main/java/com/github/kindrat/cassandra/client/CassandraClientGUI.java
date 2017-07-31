@@ -3,6 +3,7 @@ package com.github.kindrat.cassandra.client;
 import com.github.kindrat.cassandra.client.ui.AbstractJavaFxApplicationSupport;
 import com.github.kindrat.cassandra.client.ui.View;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -26,6 +27,7 @@ public class CassandraClientGUI extends AbstractJavaFxApplicationSupport {
         view.setPrimaryStage(primaryStage);
 
         primaryStage.setTitle("Cassandra client");
+        primaryStage.getIcons().add(new Image("cassandra_ico.png"));
         primaryStage.setScene(new Scene(view.getView()));
         primaryStage.setResizable(true);
         primaryStage.centerOnScreen();
