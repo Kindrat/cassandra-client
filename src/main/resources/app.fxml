@@ -180,7 +180,12 @@
                                                                     </children>
                                                                 </GridPane>
                                                                 <TableView fx:id="dataTbl" prefHeight="200.0"
-                                                                           prefWidth="200.0" GridPane.rowIndex="1"/>
+                                                                           prefWidth="200.0" GridPane.rowIndex="1">
+                                                                    <columnResizePolicy>
+                                                                        <TableView
+                                                                                fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                                                                    </columnResizePolicy>
+                                                                </TableView>
                                                                 <GridPane GridPane.rowIndex="2">
                                                                     <columnConstraints>
                                                                         <ColumnConstraints halignment="CENTER"

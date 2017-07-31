@@ -3,10 +3,13 @@ package com.github.kindrat.cassandra.client.ui;
 import com.datastax.driver.core.AbstractTableMetadata;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.TableMetadata;
+import com.github.kindrat.cassandra.client.filter.DataFilter;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
-import com.github.nginate.commons.lang.NStrings;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -40,10 +43,11 @@ import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
+import static com.github.nginate.commons.lang.NStrings.format;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
@@ -90,23 +94,34 @@ public class MainController {
     @FXML
     private GridPane tableDataPnl;
     @FXML
-    private TableView<String> dataTbl;
+    private TableView<Row> dataTbl;
+    @FXML
+    private TextField filterTb;
+    @FXML
+    private Button filterBtn;
 
     @PostConstruct
     public void init() {
         disable(plusBtn, minusBtn, queryTb, runBtn, tables, applyBtn, cancelBtn);
-        queryTb.textProperty().addListener((observable, oldValue, newValue) -> runBtn.setDisable(newValue.isEmpty()));
+        queryTb.textProperty().addListener((observable, old, newValue) -> runBtn.setDisable(newValue.isEmpty()));
         tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         tables.setOnContextMenuRequested(this::onTableContextMenu);
-        tableContext = new TableListContext(localeService, this::showDDLForTable, this::showDataForTable);
+        tableContext = new TableListContext(localeService,
+                () -> {
+                    String tableName = tables.getSelectionModel().getSelectedItem();
+                    showDDLForTable(tableName);
+                },
+                () -> {
+                    String tableName = tables.getSelectionModel().getSelectedItem();
+                    showDataForTable(tableName);
+                });
         dataTbl.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
-    private void showDDLForTable() {
+    private void showDDLForTable(String tableName) {
         tableDataPnl.setVisible(false);
-        String selected = tables.getSelectionModel().getSelectedItem();
 
-        TableMetadata tableMetadata = getTableMetadata(selected);
+        TableMetadata tableMetadata = getTableMetadata(tableName);
         String ddl = tableMetadata.toString();
 
         String formattedDdl = DDLFormatterImpl.INSTANCE.format(ddl)
@@ -115,9 +130,8 @@ public class MainController {
         ddlTextArea.setVisible(true);
     }
 
-    private void showDataForTable() {
+    private void showDataForTable(String tableName) {
         ddlTextArea.setVisible(false);
-        String tableName = tables.getSelectionModel().getSelectedItem();
         TableMetadata tableMetadata = getTableMetadata(tableName);
 
         //noinspection unchecked
@@ -125,21 +139,39 @@ public class MainController {
         dataTbl.getItems().clear();
 
         tableMetadata.getColumns().forEach(columnMetadata -> {
-            TableColumn<String, String> column = new TableColumn<>();
+            TableColumn<Row, String> column = new TableColumn<>();
             Label columnLabel = new Label(columnMetadata.getName());
             columnLabel.setTooltip(new Tooltip(columnMetadata.getType().asFunctionParameterString()));
+            column.setCellValueFactory(param -> {
+                String value = Objects.toString(param.getValue().getObject(columnMetadata.getName()), "null");
+                return new SimpleStringProperty(value);
+            });
             column.setGraphic(columnLabel);
             dataTbl.getColumns().add(column);
         });
 
-        double headerHeight = dataTbl.lookup(".column-header-background").getBoundsInLocal().getHeight();
-        double height = dataTbl.getHeight() - headerHeight;
+        long tableSize = cassandraAdminTemplate.count(tableName);
+        fireLogEvent("Loading data for {}", tableName);
+        ResultSet resultSet = cassandraAdminTemplate.query(format("select * from {}", tableName));
+        List<Row> loadedRows = resultSet.all();
+        ObservableList<Row> original = FXCollections.observableArrayList(loadedRows);
+        dataTbl.setItems(original);
 
-        int rows = (int) (height / headerHeight); // FIXME magic number, used from header
+        filterBtn.setOnAction(event -> {
+            if (filterTb.getText().isEmpty()) {
+                if (dataTbl.getItems().size() != original.size()) {
+                    dataTbl.setItems(original);
+                }
+            } else {
+                DataFilter.parse(filterTb.getText()).ifPresent(dataFilter -> {
+                    List<Row> filtered = original.stream().filter(dataFilter).collect(Collectors.toList());
+                    dataTbl.setItems(FXCollections.observableArrayList(filtered));
+                });
+            }
+        });
 
-        log.info("Creating table for {} rows", rows);
-        List<String> values = IntStream.range(0, rows).mapToObj(Integer::toString).collect(Collectors.toList());
-        dataTbl.setItems(FXCollections.observableArrayList(values));
+        fireLogEvent("Loaded {} entries from {}", tableSize, tableName);
+
         tableDataPnl.setVisible(true);
     }
 
@@ -230,7 +262,7 @@ public class MainController {
     }
 
     private void fireLogEvent(String template, Object... args) {
-        String message = NStrings.format(template, args);
+        String message = format(template, args);
         log.info(message);
         eventLbl.setText(message);
     }
