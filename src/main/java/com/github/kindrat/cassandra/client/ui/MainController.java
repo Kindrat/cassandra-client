@@ -7,6 +7,7 @@ import com.datastax.driver.core.TableMetadata;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
 import com.github.nginate.commons.lang.NStrings;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -16,8 +17,11 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
@@ -34,8 +38,11 @@ import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.function.Function.identity;
@@ -82,6 +89,8 @@ public class MainController {
     private TextArea ddlTextArea;
     @FXML
     private GridPane tableDataPnl;
+    @FXML
+    private TableView<String> dataTbl;
 
     @PostConstruct
     public void init() {
@@ -90,11 +99,14 @@ public class MainController {
         tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         tables.setOnContextMenuRequested(this::onTableContextMenu);
         tableContext = new TableListContext(localeService, this::showDDLForTable, this::showDataForTable);
+        dataTbl.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
     private void showDDLForTable() {
         tableDataPnl.setVisible(false);
-        TableMetadata tableMetadata = getTableMetadata();
+        String selected = tables.getSelectionModel().getSelectedItem();
+
+        TableMetadata tableMetadata = getTableMetadata(selected);
         String ddl = tableMetadata.toString();
 
         String formattedDdl = DDLFormatterImpl.INSTANCE.format(ddl)
@@ -105,12 +117,34 @@ public class MainController {
 
     private void showDataForTable() {
         ddlTextArea.setVisible(false);
+        String tableName = tables.getSelectionModel().getSelectedItem();
+        TableMetadata tableMetadata = getTableMetadata(tableName);
+
+        //noinspection unchecked
+        dataTbl.getColumns().clear();
+        dataTbl.getItems().clear();
+
+        tableMetadata.getColumns().forEach(columnMetadata -> {
+            TableColumn<String, String> column = new TableColumn<>();
+            Label columnLabel = new Label(columnMetadata.getName());
+            columnLabel.setTooltip(new Tooltip(columnMetadata.getType().asFunctionParameterString()));
+            column.setGraphic(columnLabel);
+            dataTbl.getColumns().add(column);
+        });
+
+        double headerHeight = dataTbl.lookup(".column-header-background").getBoundsInLocal().getHeight();
+        double height = dataTbl.getHeight() - headerHeight;
+
+        int rows = (int) (height / headerHeight); // FIXME magic number, used from header
+
+        log.info("Creating table for {} rows", rows);
+        List<String> values = IntStream.range(0, rows).mapToObj(Integer::toString).collect(Collectors.toList());
+        dataTbl.setItems(FXCollections.observableArrayList(values));
         tableDataPnl.setVisible(true);
     }
 
-    private TableMetadata getTableMetadata() {
-        String selected = tables.getSelectionModel().getSelectedItem();
-        return this.tableMetadata.get(selected);
+    private TableMetadata getTableMetadata(String tableName) {
+        return this.tableMetadata.get(tableName);
     }
 
     @FXML
