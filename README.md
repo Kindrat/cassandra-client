@@ -32,6 +32,10 @@ Planned:
 * add/save connections
 * packaging
 
+### Available filters
+
+* equal check for one field : _fieldname=value_
+
 ### GUI
 
 #### Main window

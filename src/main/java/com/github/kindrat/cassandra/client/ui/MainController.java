@@ -12,6 +12,7 @@ import com.datastax.driver.core.TypeCodec;
 import com.github.kindrat.cassandra.client.filter.DataFilter;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
+import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
 import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -206,20 +207,7 @@ public class MainController {
 
         ObservableList<Row> original = FXCollections.observableArrayList(loadedRows);
         dataTbl.setItems(original);
-
-        filterBtn.setOnAction(event -> {
-            if (filterTb.getText().isEmpty()) {
-                if (dataTbl.getItems().size() != original.size()) {
-                    dataTbl.setItems(original);
-                }
-            } else {
-                DataFilter.parse(filterTb.getText()).ifPresent(dataFilter -> {
-                    List<Row> filtered = original.stream().filter(dataFilter).collect(Collectors.toList());
-                    dataTbl.setItems(FXCollections.observableArrayList(filtered));
-                });
-            }
-        });
-
+        filterBtn.setOnAction(new FilterBtnHandler(filterTb, dataTbl, original));
         tableDataPnl.setVisible(true);
     }
 
