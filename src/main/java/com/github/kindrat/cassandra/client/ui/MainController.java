@@ -1,19 +1,19 @@
 package com.github.kindrat.cassandra.client.ui;
 
 import com.datastax.driver.core.AbstractTableMetadata;
-import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.CodecRegistry;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.TypeCodec;
-import com.github.kindrat.cassandra.client.filter.DataFilter;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
+import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
 import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
 import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
+import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -46,26 +46,19 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hibernate.engine.jdbc.internal.DDLFormatterImpl;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.cassandra.config.CassandraSessionFactoryBean;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 
 import javax.annotation.PostConstruct;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
+import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
 import static com.github.nginate.commons.lang.NStrings.format;
-import static com.google.common.base.Strings.isNullOrEmpty;
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
 import static javafx.collections.FXCollections.emptyObservableList;
 import static javafx.collections.FXCollections.observableArrayList;
-import static org.springframework.util.ReflectionUtils.findField;
-import static org.springframework.util.ReflectionUtils.getField;
 
 @Slf4j
 public class MainController {
@@ -76,63 +69,67 @@ public class MainController {
     @Autowired
     private MessageByLocaleService localeService;
     @Autowired
+    private CassandraClientAdapter clientAdapter;
+    @Autowired
     private View view;
 
-    private CassandraAdminTemplate cassandraAdminTemplate;
     private ContextMenu tableContext;
     private Map<String, TableMetadata> tableMetadata;
 
     @FXML
     private ListView<String> tables;
     @FXML
-    private Button plusBtn;
+    private Button plusButton;
     @FXML
-    private Button minusBtn;
+    private Button minusButton;
     @FXML
-    private Button applyBtn;
+    private Button applyButton;
     @FXML
-    private Button cancelBtn;
+    private Button cancelButton;
     @FXML
-    private Button runBtn;
+    private Button runButton;
     @FXML
-    private TextField queryTb;
+    private TextField queryTextField;
     @FXML
-    private Label eventLbl;
+    private Label eventLabel;
     @FXML
-    private Label serverLbl;
+    private Label serverLabel;
     @FXML
     private AnchorPane editorAnchor;
     @FXML
     private TextArea ddlTextArea;
     @FXML
-    private GridPane tableDataPnl;
+    private GridPane tableDataGridPane;
     @FXML
-    private TableView<Row> dataTbl;
+    private TableView<Row> dataTableView;
     @FXML
-    private TextField filterTb;
+    private TextField filterTextField;
     @FXML
-    private Button filterBtn;
+    private Button filterButton;
 
     @PostConstruct
     public void init() {
-        disable(plusBtn, minusBtn, queryTb, runBtn, tables, applyBtn, cancelBtn);
-        queryTb.textProperty().addListener((observable, old, newValue) -> runBtn.setDisable(newValue.isEmpty()));
-        runBtn.setOnAction(
+        disable(plusButton, minusButton, queryTextField, runButton, tables, applyButton, cancelButton);
+        queryTextField.textProperty().addListener(TextFieldButtonWatcher.wrap(runButton));
+        queryTextField.setTooltip(new Tooltip(localeService.getMessage("ui.editor.query.textbox.tooltip")));
+        runButton.setTooltip(new Tooltip(localeService.getMessage("ui.editor.query.button.tooltip")));
+
+        runButton.setOnAction(
                 event -> {
-                    String rawQuery = queryTb.getText();
-                    try {
-                        ResultSet resultSet = cassandraAdminTemplate.query(rawQuery);
-                        Matcher matcher = tableInSelect.matcher(rawQuery);
-                        if (matcher.find()) {
-                            String tableName = matcher.group(4);
-                            showDataRows(tableName, resultSet.all());
+                    String cqlQuery = queryTextField.getText();
+                    clientAdapter.execute(cqlQuery).whenComplete((rows, throwable) -> {
+                        if (throwable != null) {
+                            printError(throwable);
+                        } else {
+                            Platform.runLater(() -> {
+                                Matcher matcher = tableInSelect.matcher(cqlQuery);
+                                if (matcher.find()) {
+                                    String tableName = matcher.group(4);
+                                    showDataRows(tableName, rows.all());
+                                }
+                            });
                         }
-                    } catch (Exception e) {
-                        fireLogEvent("Statement failed : {}", e.getMessage());
-                        dataTbl.setVisible(false);
-                        ddlTextArea.setText(ExceptionUtils.getStackTrace(e));
-                        ddlTextArea.setVisible(true);
-                    }
+                    });
                 }
         );
         tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
@@ -146,13 +143,13 @@ public class MainController {
                     String tableName = tables.getSelectionModel().getSelectedItem();
                     showDataForTable(tableName);
                 });
-        dataTbl.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        dataTbl.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        dataTbl.getSelectionModel().setCellSelectionEnabled(true);
+        dataTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        dataTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        dataTableView.getSelectionModel().setCellSelectionEnabled(true);
     }
 
     public void onWindowLoad() {
-        TableCellCopyHandler copyHandler = new TableCellCopyHandler(dataTbl);
+        TableCellCopyHandler copyHandler = new TableCellCopyHandler(dataTableView);
         getAccelerators().put(new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_ANY), copyHandler);
     }
 
@@ -161,7 +158,7 @@ public class MainController {
     }
 
     private void showDDLForTable(String tableName) {
-        tableDataPnl.setVisible(false);
+        tableDataGridPane.setVisible(false);
 
         TableMetadata tableMetadata = getTableMetadata(tableName);
         String ddl = tableMetadata.toString();
@@ -173,13 +170,19 @@ public class MainController {
     }
 
     private void showDataForTable(String tableName) {
-        long tableSize = cassandraAdminTemplate.count(tableName);
+        long tableSize = clientAdapter.count(tableName);
         fireLogEvent("Loading data for {}", tableName);
-        ResultSet resultSet = cassandraAdminTemplate.query(format("select * from {}", tableName));
-        List<Row> loadedRows = resultSet.all();
-        fireLogEvent("Loaded {} entries from {}", tableSize, tableName);
-
-        showDataRows(tableName, loadedRows);
+        clientAdapter.getAll(tableName).whenComplete((rows, throwable) -> {
+            if (throwable != null) {
+                printError(throwable);
+            } else {
+                Platform.runLater(() -> {
+                    List<Row> loadedRows = rows.all();
+                    fireLogEvent("Loaded {} entries from {}", tableSize, tableName);
+                    showDataRows(tableName, loadedRows);
+                });
+            }
+        });
     }
 
     private void showDataRows(String tableName, List<Row> loadedRows) {
@@ -187,8 +190,8 @@ public class MainController {
         TableMetadata tableMetadata = getTableMetadata(tableName);
 
         //noinspection unchecked
-        dataTbl.getColumns().clear();
-        dataTbl.getItems().clear();
+        dataTableView.getColumns().clear();
+        dataTableView.getItems().clear();
 
         tableMetadata.getColumns().forEach(columnMetadata -> {
             DataType type = columnMetadata.getType();
@@ -202,13 +205,13 @@ public class MainController {
                 return new SimpleObjectProperty<>(object);
             });
             column.setGraphic(columnLabel);
-            dataTbl.getColumns().add(column);
+            dataTableView.getColumns().add(column);
         });
 
         ObservableList<Row> original = FXCollections.observableArrayList(loadedRows);
-        dataTbl.setItems(original);
-        filterBtn.setOnAction(new FilterBtnHandler(filterTb, dataTbl, original));
-        tableDataPnl.setVisible(true);
+        dataTableView.setItems(original);
+        filterButton.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, original));
+        tableDataGridPane.setVisible(true);
     }
 
     private TableMetadata getTableMetadata(String tableName) {
@@ -229,9 +232,9 @@ public class MainController {
     public void onTableSelection(MouseEvent event) {
         ObservableList<String> selectedItems = tables.getSelectionModel().getSelectedItems();
         if (selectedItems.isEmpty()) {
-            disable(plusBtn, minusBtn);
+            disable(plusButton, minusButton);
         } else {
-            enable(plusBtn, minusBtn);
+            enable(plusButton, minusButton);
         }
     }
 
@@ -248,41 +251,26 @@ public class MainController {
     private void loadTables(String url, String keyspace) {
         fireLogEvent("Connecting to {}/{} ...", url, keyspace);
         tables.setItems(emptyObservableList());
-        serverLbl.setText("");
-        disable(plusBtn, minusBtn, queryTb, runBtn, tables, applyBtn, cancelBtn);
+        serverLabel.setText("");
+        disable(plusButton, minusButton, queryTextField, runButton, tables, applyButton, cancelButton);
 
-        if (isNullOrEmpty(keyspace) || isNullOrEmpty(url)) {
-            return;
-        }
-        String[] urlParts = url.split(":");
-        if (urlParts.length != 2) {
-            return;
-        }
-        int port;
-        try {
-            port = Integer.parseInt(urlParts[1]);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            return;
-        }
-
-        fireLogEvent("Loading from {}/{}", url, keyspace);
-        Cluster cluster = Cluster.builder()
-                .addContactPoint(urlParts[0])
-                .withPort(port)
-                .build();
-        CassandraSessionFactoryBean factory = beanFactory.getBean(CassandraSessionFactoryBean.class, cluster, keyspace);
-        Field adminTemplateField = findField(CassandraSessionFactoryBean.class, "admin");
-        adminTemplateField.setAccessible(true);
-        cassandraAdminTemplate = (CassandraAdminTemplate) getField(adminTemplateField, factory);
-        KeyspaceMetadata keyspaceMetadata = cassandraAdminTemplate.getKeyspaceMetadata();
-        tableMetadata = keyspaceMetadata.getTables()
-                .stream()
-                .collect(toMap(AbstractTableMetadata::getName, identity()));
-        tables.setItems(observableArrayList(tableMetadata.keySet()).sorted());
-        serverLbl.setText(url + "/" + keyspace);
-        fireLogEvent("Loaded tables from {}/{}", url, keyspace);
-        enable(queryTb, tables);
+        clientAdapter.connect(url, keyspace)
+                .thenApply(CassandraAdminTemplate::getKeyspaceMetadata)
+                .thenApply(KeyspaceMetadata::getTables)
+                .thenApply(tables -> toMap(tables, AbstractTableMetadata::getName))
+                .whenComplete((metadata, error) -> {
+                    if (error != null) {
+                        printError(error);
+                    } else {
+                        Platform.runLater(() -> {
+                            tableMetadata = metadata;
+                            tables.setItems(observableArrayList(tableMetadata.keySet()).sorted());
+                            serverLabel.setText(url + "/" + keyspace);
+                            fireLogEvent("Loaded tables from {}/{}", url, keyspace);
+                            enable(queryTextField, tables);
+                        });
+                    }
+                });
     }
 
     private void disable(Node... nodes) {
@@ -300,11 +288,19 @@ public class MainController {
     private void fireLogEvent(String template, Object... args) {
         String message = format(template, args);
         log.info(message);
-        eventLbl.setText(message);
+        eventLabel.setText(message);
     }
 
     private void clear(Pane pane) {
         ObservableList<Node> children = pane.getChildren();
         children.clear();
+    }
+
+    private void printError(Throwable t) {
+        Platform.runLater(() -> {
+            tableDataGridPane.setVisible(false);
+            ddlTextArea.setText(ExceptionUtils.getStackTrace(t));
+            ddlTextArea.setVisible(true);
+        });
     }
 }

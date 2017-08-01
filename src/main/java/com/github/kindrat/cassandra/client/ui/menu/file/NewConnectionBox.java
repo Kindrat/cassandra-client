@@ -2,6 +2,7 @@ package com.github.kindrat.cassandra.client.ui.menu.file;
 
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
+import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.geometry.Pos;
@@ -21,6 +22,7 @@ public class NewConnectionBox extends Stage {
     private final BiConsumer<String, String> valueHandler;
     private final TextField urlField;
     private final TextField keyspaceField;
+    private final Button submitButton;
 
     public NewConnectionBox(Stage parent, MessageByLocaleService localeService, UIProperties uiProperties,
                             BiConsumer<String, String> valueHandler) {
@@ -39,8 +41,13 @@ public class NewConnectionBox extends Stage {
         children.add(urlField);
         keyspaceField = getKeyspaceField(uiProperties.getNewConnectWidth());
         children.add(keyspaceField);
-        children.add(buildButton());
-        buildButton().requestFocus();
+        submitButton = buildButton();
+
+        children.add(submitButton);
+        submitButton.requestFocus();
+
+        urlField.textProperty().addListener(TextFieldButtonWatcher.wrap(submitButton));
+        keyspaceField.textProperty().addListener(TextFieldButtonWatcher.wrap(submitButton));
 
         setScene(content);
         show();

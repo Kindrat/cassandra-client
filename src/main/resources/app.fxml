@@ -19,12 +19,13 @@
             <menus>
                 <Menu mnemonicParsing="false" text="File">
                     <items>
-                        <MenuItem fx:id="connectBtn" mnemonicParsing="false" onAction="#onConnectClick" text="Connect"/>
+                        <MenuItem fx:id="connectButton" mnemonicParsing="false" onAction="#onConnectClick"
+                                  text="Connect"/>
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="Help">
                     <items>
-                        <MenuItem fx:id="aboutBtn" mnemonicParsing="false" onAction="#onAboutClick" text="About"/>
+                        <MenuItem fx:id="aboutButton" mnemonicParsing="false" onAction="#onAboutClick" text="About"/>
                     </items>
                 </Menu>
             </menus>
@@ -70,16 +71,18 @@
                                                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
                                             </rowConstraints>
                                             <children>
-                                                <Button fx:id="plusBtn" maxWidth="-Infinity" minWidth="-Infinity"
+                                                <Button fx:id="plusButton" maxWidth="-Infinity" minWidth="-Infinity"
                                                         mnemonicParsing="false" prefHeight="25.0" prefWidth="30.0"
                                                         text="+"/>
-                                                <Button fx:id="minusBtn" maxWidth="-Infinity" minWidth="-Infinity"
+                                                <Button fx:id="minusButton" maxWidth="-Infinity" minWidth="-Infinity"
                                                         mnemonicParsing="false" prefHeight="25.0" prefWidth="30.0"
                                                         text="-" GridPane.columnIndex="1"/>
-                                                <Button fx:id="applyBtn" alignment="CENTER_RIGHT" maxWidth="-Infinity"
+                                                <Button fx:id="applyButton" alignment="CENTER_RIGHT"
+                                                        maxWidth="-Infinity"
                                                         minWidth="-Infinity" mnemonicParsing="false" prefHeight="25.0"
                                                         prefWidth="30.0" text="✓" GridPane.columnIndex="3"/>
-                                                <Button fx:id="cancelBtn" alignment="CENTER_RIGHT" maxWidth="-Infinity"
+                                                <Button fx:id="cancelButton" alignment="CENTER_RIGHT"
+                                                        maxWidth="-Infinity"
                                                         minWidth="-Infinity" mnemonicParsing="false" prefHeight="25.0"
                                                         prefWidth="30.0" text="∅" GridPane.columnIndex="4"/>
                                             </children>
@@ -104,21 +107,21 @@
                                                   AnchorPane.topAnchor="0.0">
                                             <columnConstraints>
                                                 <ColumnConstraints halignment="CENTER" hgrow="ALWAYS" minWidth="10.0"/>
-                                                <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="50.0"
-                                                                   minWidth="50.0" prefWidth="50.0"/>
+                                                <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES"
+                                                                   maxWidth="100.0" minWidth="100.0" prefWidth="100.0"/>
                                             </columnConstraints>
                                             <rowConstraints>
                                                 <RowConstraints maxHeight="35.0" minHeight="35.0" prefHeight="35.0"
                                                                 valignment="CENTER" vgrow="SOMETIMES"/>
                                             </rowConstraints>
                                             <children>
-                                                <TextField fx:id="queryTb">
+                                                <TextField fx:id="queryTextField">
                                                     <GridPane.margin>
                                                         <Insets left="10.0" right="10.0"/>
                                                     </GridPane.margin>
                                                 </TextField>
-                                                <Button fx:id="runBtn" maxWidth="30.0" minWidth="30.0"
-                                                        mnemonicParsing="false" prefWidth="30.0" text="‣"
+                                                <Button fx:id="runButton" maxWidth="90.0" minWidth="90.0"
+                                                        mnemonicParsing="false" prefWidth="90.0" text="Run query"
                                                         GridPane.columnIndex="1"/>
                                             </children>
                                         </GridPane>
@@ -134,7 +137,7 @@
                                                 <AnchorPane fx:id="editorAnchor" minHeight="0.0" minWidth="0.0"
                                                             prefHeight="100.0" prefWidth="160.0">
                                                     <children>
-                                                        <GridPane fx:id="tableDataPnl" layoutX="78.0" layoutY="131.0"
+                                                        <GridPane fx:id="tableDataGridPane" layoutX="78.0" layoutY="131.0"
                                                                   visible="false" AnchorPane.bottomAnchor="0.0"
                                                                   AnchorPane.leftAnchor="0.0"
                                                                   AnchorPane.rightAnchor="0.0"
@@ -159,9 +162,9 @@
                                                                                            prefWidth="100.0"/>
                                                                         <ColumnConstraints halignment="CENTER"
                                                                                            hgrow="SOMETIMES"
-                                                                                           maxWidth="50.0"
-                                                                                           minWidth="50.0"
-                                                                                           prefWidth="50.0"/>
+                                                                                           maxWidth="100.0"
+                                                                                           minWidth="100.0"
+                                                                                           prefWidth="100.0"/>
                                                                     </columnConstraints>
                                                                     <rowConstraints>
                                                                         <RowConstraints minHeight="10.0"
@@ -169,17 +172,17 @@
                                                                                         vgrow="SOMETIMES"/>
                                                                     </rowConstraints>
                                                                     <children>
-                                                                        <Button fx:id="filterBtn"
-                                                                                mnemonicParsing="false" text="✄"
+                                                                        <Button fx:id="filterButton"
+                                                                                mnemonicParsing="false" text="Filter"
                                                                                 GridPane.columnIndex="1"/>
-                                                                        <TextField fx:id="filterTb">
+                                                                        <TextField fx:id="filterTextField">
                                                                             <GridPane.margin>
                                                                                 <Insets left="10.0" right="10.0"/>
                                                                             </GridPane.margin>
                                                                         </TextField>
                                                                     </children>
                                                                 </GridPane>
-                                                                <TableView fx:id="dataTbl" editable="true"
+                                                                <TableView fx:id="dataTableView" editable="true"
                                                                            prefHeight="200.0" prefWidth="200.0"
                                                                            GridPane.rowIndex="1">
                                                                     <columnResizePolicy>
@@ -187,7 +190,7 @@
                                                                                 fx:constant="CONSTRAINED_RESIZE_POLICY"/>
                                                                     </columnResizePolicy>
                                                                 </TableView>
-                                                                <GridPane GridPane.rowIndex="2">
+                                                                <GridPane disable="true" GridPane.rowIndex="2">
                                                                     <columnConstraints>
                                                                         <ColumnConstraints halignment="CENTER"
                                                                                            hgrow="SOMETIMES"
@@ -240,7 +243,7 @@
                                                                                 vgrow="SOMETIMES"/>
                                                             </rowConstraints>
                                                             <children>
-                                                                <Label fx:id="eventLbl">
+                                                                <Label fx:id="eventLabel">
                                                                     <opaqueInsets>
                                                                         <Insets/>
                                                                     </opaqueInsets>
@@ -248,7 +251,7 @@
                                                                         <Insets left="10.0" right="10.0"/>
                                                                     </GridPane.margin>
                                                                 </Label>
-                                                                <Label fx:id="serverLbl" GridPane.columnIndex="1">
+                                                                <Label fx:id="serverLabel" GridPane.columnIndex="1">
                                                                     <GridPane.margin>
                                                                         <Insets left="10.0" right="10.0"/>
                                                                     </GridPane.margin>
