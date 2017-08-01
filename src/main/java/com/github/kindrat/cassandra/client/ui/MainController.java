@@ -4,6 +4,7 @@ import com.datastax.driver.core.AbstractTableMetadata;
 import com.datastax.driver.core.CodecRegistry;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.TypeCodec;
@@ -13,7 +14,6 @@ import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
 import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
-import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -49,21 +49,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 
 import javax.annotation.PostConstruct;
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import static com.github.kindrat.cassandra.client.util.CqlUtil.getSelectTable;
+import static com.github.kindrat.cassandra.client.util.CqlUtil.isSelect;
 import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
 import static com.github.nginate.commons.lang.NStrings.format;
+import static javafx.application.Platform.runLater;
 import static javafx.collections.FXCollections.emptyObservableList;
 import static javafx.collections.FXCollections.observableArrayList;
 
 @Slf4j
 public class MainController {
-    private static final Pattern tableInSelect = Pattern.compile(
-            "([sS][eE][lL][eE][cC][tT])(\\ \\S+\\ )([fF][rR][oO][mM]\\ )(\\S+)");
+
     @Autowired
     private BeanFactory beanFactory;
     @Autowired
@@ -120,14 +119,8 @@ public class MainController {
                     clientAdapter.execute(cqlQuery).whenComplete((rows, throwable) -> {
                         if (throwable != null) {
                             printError(throwable);
-                        } else {
-                            Platform.runLater(() -> {
-                                Matcher matcher = tableInSelect.matcher(cqlQuery);
-                                if (matcher.find()) {
-                                    String tableName = matcher.group(4);
-                                    showDataRows(tableName, rows.all());
-                                }
-                            });
+                        } else if (isSelect(cqlQuery)) {
+                            getSelectTable(cqlQuery).ifPresent(table -> showDataRows(table, rows));
                         }
                     });
                 }
@@ -176,42 +169,41 @@ public class MainController {
             if (throwable != null) {
                 printError(throwable);
             } else {
-                Platform.runLater(() -> {
-                    List<Row> loadedRows = rows.all();
-                    fireLogEvent("Loaded {} entries from {}", tableSize, tableName);
-                    showDataRows(tableName, loadedRows);
-                });
+                fireLogEvent("Loaded {} entries from {}", tableSize, tableName);
+                showDataRows(tableName, rows);
             }
         });
     }
 
-    private void showDataRows(String tableName, List<Row> loadedRows) {
-        ddlTextArea.setVisible(false);
-        TableMetadata tableMetadata = getTableMetadata(tableName);
+    private void showDataRows(String tableName, ResultSet resultSet) {
+        runLater(() -> {
+            ddlTextArea.setVisible(false);
+            TableMetadata tableMetadata = getTableMetadata(tableName);
 
-        //noinspection unchecked
-        dataTableView.getColumns().clear();
-        dataTableView.getItems().clear();
+            //noinspection unchecked
+            dataTableView.getColumns().clear();
+            dataTableView.getItems().clear();
 
-        tableMetadata.getColumns().forEach(columnMetadata -> {
-            DataType type = columnMetadata.getType();
+            tableMetadata.getColumns().forEach(columnMetadata -> {
+                DataType type = columnMetadata.getType();
 
-            TableColumn<Row, Object> column = new TableColumn<>();
-            Label columnLabel = new Label(columnMetadata.getName());
-            columnLabel.setTooltip(new Tooltip(type.asFunctionParameterString()));
-            column.setCellValueFactory(param -> {
-                TypeCodec<Object> codec = CodecRegistry.DEFAULT_INSTANCE.codecFor(type);
-                Object object = param.getValue().get(columnMetadata.getName(), codec);
-                return new SimpleObjectProperty<>(object);
+                TableColumn<Row, Object> column = new TableColumn<>();
+                Label columnLabel = new Label(columnMetadata.getName());
+                columnLabel.setTooltip(new Tooltip(type.asFunctionParameterString()));
+                column.setCellValueFactory(param -> {
+                    TypeCodec<Object> codec = CodecRegistry.DEFAULT_INSTANCE.codecFor(type);
+                    Object object = param.getValue().get(columnMetadata.getName(), codec);
+                    return new SimpleObjectProperty<>(object);
+                });
+                column.setGraphic(columnLabel);
+                dataTableView.getColumns().add(column);
             });
-            column.setGraphic(columnLabel);
-            dataTableView.getColumns().add(column);
-        });
 
-        ObservableList<Row> original = FXCollections.observableArrayList(loadedRows);
-        dataTableView.setItems(original);
-        filterButton.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, original));
-        tableDataGridPane.setVisible(true);
+            ObservableList<Row> original = FXCollections.observableArrayList(resultSet.all());
+            dataTableView.setItems(original);
+            filterButton.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, original));
+            tableDataGridPane.setVisible(true);
+        });
     }
 
     private TableMetadata getTableMetadata(String tableName) {
@@ -262,7 +254,7 @@ public class MainController {
                     if (error != null) {
                         printError(error);
                     } else {
-                        Platform.runLater(() -> {
+                        runLater(() -> {
                             tableMetadata = metadata;
                             tables.setItems(observableArrayList(tableMetadata.keySet()).sorted());
                             serverLabel.setText(url + "/" + keyspace);
@@ -286,9 +278,11 @@ public class MainController {
     }
 
     private void fireLogEvent(String template, Object... args) {
-        String message = format(template, args);
-        log.info(message);
-        eventLabel.setText(message);
+        runLater(() -> {
+            String message = format(template, args);
+            log.info(message);
+            eventLabel.setText(message);
+        });
     }
 
     private void clear(Pane pane) {
@@ -297,7 +291,7 @@ public class MainController {
     }
 
     private void printError(Throwable t) {
-        Platform.runLater(() -> {
+        runLater(() -> {
             tableDataGridPane.setVisible(false);
             ddlTextArea.setText(ExceptionUtils.getStackTrace(t));
             ddlTextArea.setVisible(true);
