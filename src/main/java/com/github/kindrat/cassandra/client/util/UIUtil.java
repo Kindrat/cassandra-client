@@ -12,4 +12,16 @@ public class UIUtil {
         AnchorPane.setTopAnchor(node, 0.);
         AnchorPane.setBottomAnchor(node, 0.);
     }
+
+    public static void disable(Node... nodes) {
+        for (Node node : nodes) {
+            node.setDisable(true);
+        }
+    }
+
+    public static void enable(Node... nodes) {
+        for (Node node : nodes) {
+            node.setDisable(false);
+        }
+    }
 }

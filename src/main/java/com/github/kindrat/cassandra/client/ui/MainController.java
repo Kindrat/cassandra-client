@@ -14,13 +14,14 @@ import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
 import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
+import com.sun.javafx.tk.FontLoader;
+import com.sun.javafx.tk.Toolkit;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -38,12 +39,9 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.hibernate.engine.jdbc.internal.DDLFormatterImpl;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
@@ -52,9 +50,12 @@ import javax.annotation.PostConstruct;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import static com.github.kindrat.cassandra.client.util.CqlUtil.formatDDL;
 import static com.github.kindrat.cassandra.client.util.CqlUtil.getSelectTable;
 import static com.github.kindrat.cassandra.client.util.CqlUtil.isSelect;
 import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
+import static com.github.kindrat.cassandra.client.util.UIUtil.disable;
+import static com.github.kindrat.cassandra.client.util.UIUtil.enable;
 import static com.github.nginate.commons.lang.NStrings.format;
 import static javafx.application.Platform.runLater;
 import static javafx.collections.FXCollections.emptyObservableList;
@@ -110,7 +111,8 @@ public class MainController {
     public void init() {
         disable(plusButton, minusButton, queryTextField, runButton, tables, applyButton, cancelButton);
         queryTextField.textProperty().addListener(TextFieldButtonWatcher.wrap(runButton));
-        queryTextField.setTooltip(new Tooltip(localeService.getMessage("ui.editor.query.textbox.tooltip")));
+        queryTextField.setPromptText(localeService.getMessage("ui.editor.query.textbox.tooltip"));
+        filterTextField.setPromptText(localeService.getMessage("ui.editor.filter.textbox.prompt"));
         runButton.setTooltip(new Tooltip(localeService.getMessage("ui.editor.query.button.tooltip")));
 
         runButton.setOnAction(
@@ -127,18 +129,16 @@ public class MainController {
         );
         tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         tables.setOnContextMenuRequested(this::onTableContextMenu);
-        tableContext = new TableListContext(localeService,
-                () -> {
-                    String tableName = tables.getSelectionModel().getSelectedItem();
-                    showDDLForTable(tableName);
-                },
-                () -> {
-                    String tableName = tables.getSelectionModel().getSelectedItem();
-                    showDataForTable(tableName);
-                });
-        dataTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tableContext = new TableListContext(localeService, () -> showDDLForTable(getSelectedTable()),
+                () -> showDataForTable(getSelectedTable()));
+
+        dataTableView.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         dataTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         dataTableView.getSelectionModel().setCellSelectionEnabled(true);
+    }
+
+    private String getSelectedTable() {
+        return tables.getSelectionModel().getSelectedItem();
     }
 
     public void onWindowLoad() {
@@ -152,13 +152,7 @@ public class MainController {
 
     private void showDDLForTable(String tableName) {
         tableDataGridPane.setVisible(false);
-
-        TableMetadata tableMetadata = getTableMetadata(tableName);
-        String ddl = tableMetadata.toString();
-
-        String formattedDdl = DDLFormatterImpl.INSTANCE.format(ddl)
-                .replaceAll("AND", "\n\tAND");
-        ddlTextArea.setText(formattedDdl);
+        ddlTextArea.setText(formatDDL(metadataFor(tableName).toString()));
         ddlTextArea.setVisible(true);
     }
 
@@ -178,13 +172,11 @@ public class MainController {
     private void showDataRows(String tableName, ResultSet resultSet) {
         runLater(() -> {
             ddlTextArea.setVisible(false);
-            TableMetadata tableMetadata = getTableMetadata(tableName);
 
-            //noinspection unchecked
             dataTableView.getColumns().clear();
             dataTableView.getItems().clear();
 
-            tableMetadata.getColumns().forEach(columnMetadata -> {
+            metadataFor(tableName).getColumns().forEach(columnMetadata -> {
                 DataType type = columnMetadata.getType();
 
                 TableColumn<Row, Object> column = new TableColumn<>();
@@ -196,18 +188,22 @@ public class MainController {
                     return new SimpleObjectProperty<>(object);
                 });
                 column.setGraphic(columnLabel);
+                FontLoader fontLoader = Toolkit.getToolkit().getFontLoader();
+                float width = fontLoader.computeStringWidth(columnLabel.getText(), columnLabel.getFont());
+                column.setMinWidth(width * 1.3);
                 dataTableView.getColumns().add(column);
             });
 
             ObservableList<Row> original = FXCollections.observableArrayList(resultSet.all());
             dataTableView.setItems(original);
+            dataTableView.refresh();
             filterButton.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, original));
             tableDataGridPane.setVisible(true);
         });
     }
 
-    private TableMetadata getTableMetadata(String tableName) {
-        return this.tableMetadata.get(tableName);
+    private TableMetadata metadataFor(String tableName) {
+        return tableMetadata.get(tableName);
     }
 
     @FXML
@@ -233,13 +229,11 @@ public class MainController {
     private void onTableContextMenu(ContextMenuEvent event) {
         ObservableList<String> selectedItems = tables.getSelectionModel().getSelectedItems();
         if (!selectedItems.isEmpty()) {
-            String selectedItem = selectedItems.get(0);
             tableContext.show(tables, event.getScreenX(), event.getScreenY());
         }
     }
 
 
-    @SneakyThrows
     private void loadTables(String url, String keyspace) {
         fireLogEvent("Connecting to {}/{} ...", url, keyspace);
         tables.setItems(emptyObservableList());
@@ -254,28 +248,21 @@ public class MainController {
                     if (error != null) {
                         printError(error);
                     } else {
-                        runLater(() -> {
-                            tableMetadata = metadata;
-                            tables.setItems(observableArrayList(tableMetadata.keySet()).sorted());
-                            serverLabel.setText(url + "/" + keyspace);
-                            fireLogEvent("Loaded tables from {}/{}", url, keyspace);
-                            enable(queryTextField, tables);
-                        });
+                        tableMetadata = metadata;
+                        showTableNames(url, keyspace);
                     }
                 });
     }
 
-    private void disable(Node... nodes) {
-        for (Node node : nodes) {
-            node.setDisable(true);
-        }
+    private void showTableNames(String url, String keyspace) {
+        runLater(() -> {
+            tables.setItems(observableArrayList(tableMetadata.keySet()).sorted());
+            serverLabel.setText(url + "/" + keyspace);
+            fireLogEvent("Loaded tables from {}/{}", url, keyspace);
+            enable(queryTextField, tables);
+        });
     }
 
-    private void enable(Node... nodes) {
-        for (Node node : nodes) {
-            node.setDisable(false);
-        }
-    }
 
     private void fireLogEvent(String template, Object... args) {
         runLater(() -> {
@@ -283,11 +270,6 @@ public class MainController {
             log.info(message);
             eventLabel.setText(message);
         });
-    }
-
-    private void clear(Pane pane) {
-        ObservableList<Node> children = pane.getChildren();
-        children.clear();
     }
 
     private void printError(Throwable t) {

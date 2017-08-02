@@ -11,6 +11,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -22,7 +23,6 @@ public class NewConnectionBox extends Stage {
     private final BiConsumer<String, String> valueHandler;
     private final TextField urlField;
     private final TextField keyspaceField;
-    private final Button submitButton;
 
     public NewConnectionBox(Stage parent, MessageByLocaleService localeService, UIProperties uiProperties,
                             BiConsumer<String, String> valueHandler) {
@@ -41,14 +41,14 @@ public class NewConnectionBox extends Stage {
         children.add(urlField);
         keyspaceField = getKeyspaceField(uiProperties.getNewConnectWidth());
         children.add(keyspaceField);
-        submitButton = buildButton();
 
+        Button submitButton = buildButton();
         children.add(submitButton);
-        submitButton.requestFocus();
 
         urlField.textProperty().addListener(TextFieldButtonWatcher.wrap(submitButton));
         keyspaceField.textProperty().addListener(TextFieldButtonWatcher.wrap(submitButton));
 
+        urlField.requestFocus();
         setScene(content);
         show();
     }
@@ -57,7 +57,11 @@ public class NewConnectionBox extends Stage {
         Button submit = new Button(localeService.getMessage("ui.menu.file.connect.submit.text"));
         submit.setAlignment(Pos.CENTER);
         submit.setOnAction(this::handleClick);
-        submit.setOnKeyPressed(this::handleClick);
+        submit.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                handleClick(event);
+            }
+        });
         return submit;
     }
 
