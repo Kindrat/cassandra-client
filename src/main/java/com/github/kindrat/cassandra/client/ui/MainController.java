@@ -129,6 +129,9 @@ public class MainController {
         );
         tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         tables.setOnContextMenuRequested(this::onTableContextMenu);
+        tables.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            tableContext.hide();
+        });
         tableContext = new TableListContext(localeService, () -> showDDLForTable(getSelectedTable()),
                 () -> showDataForTable(getSelectedTable()));
 
