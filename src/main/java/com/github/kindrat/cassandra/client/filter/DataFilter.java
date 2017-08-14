@@ -18,7 +18,7 @@ public class DataFilter implements Predicate<Row> {
         try {
             String[] values = filterString.split(Operator.EQ.getValue());
             return Optional.of(DataFilter.builder()
-                    .predicate(new EqPredicate<>(String.class, values[0], values[1]))
+                    .predicate(new EqPredicate<>(String.class, values[0].trim(), values[1].trim()))
                     .build());
         } catch (Exception e) {
             return Optional.empty();

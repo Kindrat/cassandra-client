@@ -4,6 +4,7 @@ import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.View;
+import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
 import com.github.kindrat.cassandra.client.ui.menu.about.AboutBox;
 import com.github.kindrat.cassandra.client.ui.menu.file.NewConnectionBox;
 import javafx.fxml.FXMLLoader;
@@ -49,6 +50,12 @@ public class CassandraClientUIConfiguration {
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
     public Stage newConnectionBox(BiConsumer<String, String> valueHandler) {
         return new NewConnectionBox(getMainView().getPrimaryStage(), localeService, uiProperties, valueHandler);
+    }
+
+    @Bean
+    @Scope(BeanDefinition.SCOPE_PROTOTYPE)
+    public FilterTextField filterTextField() {
+        return new FilterTextField(localeService);
     }
 
     @SneakyThrows

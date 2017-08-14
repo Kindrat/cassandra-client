@@ -1,0 +1,17 @@
+package com.github.kindrat.cassandra.client.ui.editor.filter;
+
+import java.util.Optional;
+import java.util.Set;
+
+public class OperatorCondition implements StateCondition {
+    @Override
+    public boolean isCurrentState(String[] words, Set<String> columnNames) {
+        Optional<String> lastWord = lastWord(words);
+        return lastWord.isPresent() && columnNames.stream().anyMatch(name -> name.equalsIgnoreCase(lastWord.get()));
+    }
+
+    @Override
+    public State name() {
+        return State.OPERATOR;
+    }
+}

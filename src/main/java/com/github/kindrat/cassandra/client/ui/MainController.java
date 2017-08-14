@@ -10,6 +10,7 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.TypeCodec;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
+import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
 import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
 import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
@@ -22,6 +23,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -72,6 +74,8 @@ public class MainController {
     private CassandraClientAdapter clientAdapter;
     @Autowired
     private View view;
+    @Autowired
+    private FilterTextField filterTextField;
 
     private ContextMenu tableContext;
     private Map<String, TableMetadata> tableMetadata;
@@ -103,7 +107,7 @@ public class MainController {
     @FXML
     private TableView<Row> dataTableView;
     @FXML
-    private TextField filterTextField;
+    private GridPane filterGrid;
     @FXML
     private Button filterButton;
 
@@ -112,7 +116,6 @@ public class MainController {
         disable(plusButton, minusButton, queryTextField, runButton, tables, applyButton, cancelButton);
         queryTextField.textProperty().addListener(TextFieldButtonWatcher.wrap(runButton));
         queryTextField.setPromptText(localeService.getMessage("ui.editor.query.textbox.tooltip"));
-        filterTextField.setPromptText(localeService.getMessage("ui.editor.filter.textbox.prompt"));
         runButton.setTooltip(new Tooltip(localeService.getMessage("ui.editor.query.button.tooltip")));
 
         runButton.setOnAction(
@@ -130,6 +133,9 @@ public class MainController {
         tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         tables.setOnContextMenuRequested(this::onTableContextMenu);
         tables.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                filterTextField.setTableMetadata(tableMetadata.get(newValue));
+            }
             tableContext.hide();
         });
         tableContext = new TableListContext(localeService, () -> showDDLForTable(getSelectedTable()),
@@ -147,6 +153,14 @@ public class MainController {
     public void onWindowLoad() {
         TableCellCopyHandler copyHandler = new TableCellCopyHandler(dataTableView);
         getAccelerators().put(new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_ANY), copyHandler);
+        getAccelerators().put(new KeyCodeCombination(KeyCode.SPACE, KeyCombination.CONTROL_ANY),
+                () -> {
+                    if (filterTextField.isFocused()) {
+                        filterTextField.suggestCompletion();
+                    }
+                });
+        filterGrid.add(filterTextField, 0, 0);
+        GridPane.setMargin(filterTextField, new Insets(0, 10, 0, 10));
     }
 
     private ObservableMap<KeyCombination, Runnable> getAccelerators() {
@@ -201,6 +215,7 @@ public class MainController {
             dataTableView.setItems(original);
             dataTableView.refresh();
             filterButton.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, original));
+            filterTextField.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, original));
             tableDataGridPane.setVisible(true);
         });
     }

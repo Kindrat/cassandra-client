@@ -1,5 +1,5 @@
 package com.github.kindrat.cassandra.client.filter;
 
-enum Combiner {
+public enum Combiner {
     OR, AND
 }

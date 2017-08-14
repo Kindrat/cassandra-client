@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-enum Operator {
+public enum Operator {
     EQ("="), GT(">"), GE(">="), LT("<"), LE("<="), NE("!="), IN("IN");
 
     private final String value;

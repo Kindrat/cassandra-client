@@ -105,7 +105,7 @@
                                                                 <RowConstraints maxHeight="40.0" minHeight="40.0" prefHeight="40.0" vgrow="SOMETIMES" />
                                                             </rowConstraints>
                                                             <children>
-                                                                <GridPane>
+                                                                <GridPane fx:id="filterGrid">
                                                                     <columnConstraints>
                                                                         <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
                                                                         <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" />
@@ -115,11 +115,6 @@
                                                                     </rowConstraints>
                                                                     <children>
                                                                         <Button fx:id="filterButton" mnemonicParsing="false" text="Filter" GridPane.columnIndex="1" />
-                                                                        <TextField fx:id="filterTextField">
-                                                                            <GridPane.margin>
-                                                                                <Insets left="10.0" right="10.0" />
-                                                                            </GridPane.margin>
-                                                                        </TextField>
                                                                     </children>
                                                                 </GridPane>
                                                                 <TableView fx:id="dataTableView" editable="true" prefHeight="200.0" prefWidth="200.0" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER">
