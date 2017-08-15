@@ -253,6 +253,9 @@ public class MainController {
 
 
     private void loadTables(String url, String keyspace) {
+        tableDataGridPane.setVisible(false);
+        ddlTextArea.setVisible(false);
+
         fireLogEvent("Connecting to {}/{} ...", url, keyspace);
         tables.setItems(emptyObservableList());
         serverLabel.setText("");
