@@ -11,6 +11,7 @@ import javafx.scene.control.TextField;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -26,10 +27,9 @@ public class FilterBtnHandler implements EventHandler<ActionEvent> {
                 dataTable.setItems(originalData);
             }
         } else {
-            DataFilter.parse(filterTb.getText()).ifPresent(dataFilter -> {
-                List<Row> filtered = originalData.stream().filter(dataFilter).collect(Collectors.toList());
-                dataTable.setItems(FXCollections.observableArrayList(filtered));
-            });
+            Predicate<Row> rowPredicate = DataFilter.parsePredicate(filterTb.getText());
+            List<Row> filtered = originalData.stream().filter(rowPredicate).collect(Collectors.toList());
+            dataTable.setItems(FXCollections.observableArrayList(filtered));
         }
     }
 }

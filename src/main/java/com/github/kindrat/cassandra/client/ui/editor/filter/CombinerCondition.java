@@ -5,6 +5,7 @@ import com.github.kindrat.cassandra.client.filter.Operator;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.github.kindrat.cassandra.client.util.StringUtil.wordAtPosition;
 import static java.util.Arrays.stream;
 
 public class CombinerCondition implements StateCondition {

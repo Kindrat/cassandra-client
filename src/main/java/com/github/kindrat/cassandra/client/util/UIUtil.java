@@ -3,6 +3,7 @@ package com.github.kindrat.cassandra.client.util;
 import javafx.scene.Node;
 import javafx.scene.layout.AnchorPane;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 
 @UtilityClass
 public class UIUtil {
@@ -11,6 +12,10 @@ public class UIUtil {
         AnchorPane.setRightAnchor(node, 0.);
         AnchorPane.setTopAnchor(node, 0.);
         AnchorPane.setBottomAnchor(node, 0.);
+    }
+
+    public static String[] parseWords(String rawString) {
+        return StringUtils.split(StringUtils.defaultString(rawString, ""));
     }
 
     public static void disable(Node... nodes) {

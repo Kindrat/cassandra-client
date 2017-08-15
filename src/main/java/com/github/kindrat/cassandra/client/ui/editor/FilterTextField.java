@@ -6,6 +6,7 @@ import com.github.kindrat.cassandra.client.filter.Combiner;
 import com.github.kindrat.cassandra.client.filter.Operator;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.ui.editor.filter.*;
+import com.github.kindrat.cassandra.client.util.UIUtil;
 import com.sun.javafx.tk.FontLoader;
 import com.sun.javafx.tk.Toolkit;
 import javafx.geometry.Side;
@@ -20,8 +21,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
+import static com.github.kindrat.cassandra.client.util.StringUtil.lastWord;
 import static java.util.Arrays.stream;
-import static org.apache.commons.lang3.ArrayUtils.isEmpty;
 import static org.apache.commons.lang3.StringUtils.startsWithIgnoreCase;
 
 @Slf4j
@@ -44,7 +45,7 @@ public class FilterTextField extends TextField {
     }
 
     public void suggestCompletion() {
-        String[] words = StringUtils.split(StringUtils.defaultString(getText(), ""));
+        String[] words = UIUtil.parseWords(getText());
         log.info("Checking words : {}", Arrays.toString(words));
         Optional<StateCondition> state = stateConditions.stream()
                 .filter(stateCondition -> stateCondition.isCurrentState(words, columnsByName.keySet()))
@@ -58,7 +59,7 @@ public class FilterTextField extends TextField {
                     suggestColumnNames();
                     break;
                 case PARTIAL_TABLE:
-                    suggestColumnName(getLastWord(words));
+                    suggestColumnName(lastWord(words).orElse(""));
                     break;
                 case OPERATOR:
                     suggestOperator();
@@ -80,10 +81,6 @@ public class FilterTextField extends TextField {
     private void suggestOperator() {
         List<String> operators = stream(Operator.values()).map(Operator::getValue).collect(Collectors.toList());
         rebuildContextMenu(operators, false);
-    }
-
-    private String getLastWord(String[] words) {
-        return isEmpty(words) ? "" : words[words.length - 1];
     }
 
     private void rebuildContextMenu(Collection<String> values, boolean isPartial) {

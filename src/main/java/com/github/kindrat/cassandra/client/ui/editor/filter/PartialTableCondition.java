@@ -3,6 +3,8 @@ package com.github.kindrat.cassandra.client.ui.editor.filter;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.github.kindrat.cassandra.client.util.StringUtil.lastWord;
+
 public class PartialTableCondition implements StateCondition {
     @Override
     public boolean isCurrentState(String[] words, Set<String> columnNames) {

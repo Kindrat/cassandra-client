@@ -1,19 +1,20 @@
 package com.github.kindrat.cassandra.client.filter.fields;
 
 import com.datastax.driver.core.Row;
-import lombok.RequiredArgsConstructor;
+import com.datastax.driver.core.TypeCodec;
 
 import java.util.Objects;
-import java.util.Optional;
 
-@RequiredArgsConstructor
-public class EqPredicate<T> extends RowPredicate {
-    private final Class<T> type;
-    private final String field;
-    private final T value;
+public class EqPredicate extends RowPredicate {
+
+    public EqPredicate(String field, String value) {
+        super(field, value);
+    }
 
     @Override
-    public boolean test(Row s) {
-        return Objects.equals(Optional.ofNullable(s.getObject(field)).orElse("").toString(), value);
+    public boolean test(Row row) {
+        TypeCodec<?> typeCodec = getColumnCodec(row);
+        Object typedValue = typeCodec.parse(getValue());
+        return Objects.equals(typedValue, row.get(getField(), typeCodec));
     }
 }
