@@ -62,7 +62,7 @@ public class DataFilter {
         String thirdWord = wordAtPosition(words, 2)
                 .orElseThrow(() -> new IllegalArgumentException("Should not be called with empty string"));
 
-        Operator operator = Operator.valueOf(secondWord);
+        Operator operator = Operator.fromValue(secondWord);
         Predicate<Row> operatorPredicate = predicateFactories.get(operator).build(firstWord, thirdWord);
 
         Optional<String> fourthWord = wordAtPosition(words, 3);
