@@ -1,7 +1,8 @@
 package com.github.kindrat.cassandra.client.service;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.*;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.querybuilder.Update;
 import com.github.kindrat.cassandra.client.exception.UrlSyntaxException;
 import com.github.nginate.commons.lang.NStrings;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -71,6 +73,34 @@ public class CassandraClientAdapter {
 
     public CompletableFuture<ResultSet> getAll(String table) {
         return CompletableFuture.supplyAsync(() -> template.get().query(NStrings.format("select * from {}", table)));
+    }
+
+    public CompletableFuture<Void> update(TableMetadata metadata, Row row) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<ColumnMetadata> primaryKey = metadata.getPrimaryKey();
+            List<ColumnMetadata> partitionKey = metadata.getPartitionKey();
+
+            Update update = QueryBuilder.update(metadata);
+            for (ColumnMetadata columnMetadata : metadata.getColumns()) {
+                if (!partitionKey.contains(columnMetadata) && !partitionKey.contains(columnMetadata)) {
+                    String name = columnMetadata.getName();
+                    update.with(QueryBuilder.add(name, row.getObject(name)));
+                }
+            }
+
+            for (ColumnMetadata columnMetadata : primaryKey) {
+                String name = columnMetadata.getName();
+                update.where(QueryBuilder.eq(name, row.getObject(name)));
+            }
+
+            for (ColumnMetadata columnMetadata : partitionKey) {
+                String name = columnMetadata.getName();
+                update.where(QueryBuilder.eq(name, row.getObject(name)));
+            }
+
+            template.get().execute(update);
+            return null;
+        });
     }
 
     public CompletableFuture<ResultSet> execute(String cql) {

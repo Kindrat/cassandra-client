@@ -24,16 +24,8 @@ import javafx.collections.ObservableMap;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
-import javafx.scene.control.Button;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.SelectionMode;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
@@ -42,6 +34,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.BeanFactory;
@@ -192,18 +185,36 @@ public class MainController {
 
             dataTableView.getColumns().clear();
             dataTableView.getItems().clear();
+            dataTableView.setEditable(true);
+            dataTableView.setOnMouseClicked(event -> {
+                //noinspection unchecked
+                TablePosition<Row, ?> tablePosition = dataTableView.focusModelProperty().get().focusedCellProperty().get();
+                dataTableView.edit(tablePosition.getRow(), tablePosition.getTableColumn());
+            });
 
             metadataFor(tableName).getColumns().forEach(columnMetadata -> {
                 DataType type = columnMetadata.getType();
+                TypeCodec<Object> codec = CodecRegistry.DEFAULT_INSTANCE.codecFor(type);
 
                 TableColumn<Row, Object> column = new TableColumn<>();
                 Label columnLabel = new Label(columnMetadata.getName());
                 columnLabel.setTooltip(new Tooltip(type.asFunctionParameterString()));
+                column.setCellFactory(TextFieldTableCell.forTableColumn(new StringConverter<Object>() {
+                    @Override
+                    public String toString(Object object) {
+                        return codec.format(object);
+                    }
+
+                    @Override
+                    public Object fromString(String string) {
+                        return codec.parse(string);
+                    }
+                }));
                 column.setCellValueFactory(param -> {
-                    TypeCodec<Object> codec = CodecRegistry.DEFAULT_INSTANCE.codecFor(type);
                     Object object = param.getValue().get(columnMetadata.getName(), codec);
                     return new SimpleObjectProperty<>(object);
                 });
+                column.setOnEditCommit(event -> clientAdapter.update(metadataFor(tableName), event.getRowValue()));
                 column.setGraphic(columnLabel);
                 FontLoader fontLoader = Toolkit.getToolkit().getFontLoader();
                 float width = fontLoader.computeStringWidth(columnLabel.getText(), columnLabel.getFont());
