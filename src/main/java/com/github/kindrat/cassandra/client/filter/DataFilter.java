@@ -1,7 +1,7 @@
 package com.github.kindrat.cassandra.client.filter;
 
-import com.datastax.driver.core.Row;
 import com.github.kindrat.cassandra.client.filter.fields.*;
+import com.github.kindrat.cassandra.client.ui.DataObject;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,10 +32,10 @@ public class DataFilter {
         predicateFactories.put(Operator.LIKE, LikePredicate::new);
     }
 
-    public static Predicate<Row> parsePredicate(String filter) {
+    public static Predicate<DataObject> parsePredicate(String filter) {
         if (filter.startsWith("(")) {
             int closingBracketIndex = findClosingBracketIndex(filter);
-            Predicate<Row> predicate = parsePredicate(filter.substring(1, closingBracketIndex));
+            Predicate<DataObject> predicate = parsePredicate(filter.substring(1, closingBracketIndex));
 
             if (closingBracketIndex != filter.length() - 1) {
                 String secondFilterPart = filter.substring(closingBracketIndex + 1).trim();
@@ -63,7 +63,7 @@ public class DataFilter {
                 .orElseThrow(() -> new IllegalArgumentException("Should not be called with empty string"));
 
         Operator operator = Operator.fromValue(secondWord);
-        Predicate<Row> operatorPredicate = predicateFactories.get(operator).build(firstWord, thirdWord);
+        Predicate<DataObject> operatorPredicate = predicateFactories.get(operator).build(firstWord, thirdWord);
 
         Optional<String> fourthWord = wordAtPosition(words, 3);
         if (fourthWord.isPresent()) {

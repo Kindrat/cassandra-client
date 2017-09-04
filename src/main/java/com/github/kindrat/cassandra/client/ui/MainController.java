@@ -1,13 +1,6 @@
 package com.github.kindrat.cassandra.client.ui;
 
-import com.datastax.driver.core.AbstractTableMetadata;
-import com.datastax.driver.core.CodecRegistry;
-import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.TypeCodec;
+import com.datastax.driver.core.*;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
 import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
@@ -26,14 +19,11 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.input.ContextMenuEvent;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -42,8 +32,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 
 import javax.annotation.PostConstruct;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import static com.github.kindrat.cassandra.client.util.CqlUtil.formatDDL;
 import static com.github.kindrat.cassandra.client.util.CqlUtil.getSelectTable;
@@ -98,7 +90,7 @@ public class MainController {
     @FXML
     private GridPane tableDataGridPane;
     @FXML
-    private TableView<Row> dataTableView;
+    private TableView<DataObject> dataTableView;
     @FXML
     private GridPane filterGrid;
     @FXML
@@ -188,7 +180,10 @@ public class MainController {
             dataTableView.setEditable(true);
             dataTableView.setOnMouseClicked(event -> {
                 //noinspection unchecked
-                TablePosition<Row, ?> tablePosition = dataTableView.focusModelProperty().get().focusedCellProperty().get();
+                TablePosition<DataObject, ?> tablePosition = dataTableView.focusModelProperty()
+                        .get()
+                        .focusedCellProperty()
+                        .get();
                 dataTableView.edit(tablePosition.getRow(), tablePosition.getTableColumn());
             });
 
@@ -196,25 +191,26 @@ public class MainController {
                 DataType type = columnMetadata.getType();
                 TypeCodec<Object> codec = CodecRegistry.DEFAULT_INSTANCE.codecFor(type);
 
-                TableColumn<Row, Object> column = new TableColumn<>();
+                TableColumn<DataObject, Object> column = new TableColumn<>();
                 Label columnLabel = new Label(columnMetadata.getName());
                 columnLabel.setTooltip(new Tooltip(type.asFunctionParameterString()));
-                column.setCellFactory(TextFieldTableCell.forTableColumn(new StringConverter<Object>() {
-                    @Override
-                    public String toString(Object object) {
-                        return codec.format(object);
-                    }
-
-                    @Override
-                    public Object fromString(String string) {
-                        return codec.parse(string);
-                    }
-                }));
+                column.setCellFactory(cellFactory(codec));
                 column.setCellValueFactory(param -> {
-                    Object object = param.getValue().get(columnMetadata.getName(), codec);
+                    Object object = param.getValue().get(columnMetadata.getName());
                     return new SimpleObjectProperty<>(object);
                 });
-                column.setOnEditCommit(event -> clientAdapter.update(metadataFor(tableName), event.getRowValue()));
+                column.setOnEditCommit(event -> {
+                    log.debug("Updating row value with {}", event.getRowValue());
+                    clientAdapter.update(metadataFor(tableName), event)
+                            .whenComplete(
+                                    (aVoid, throwable) -> {
+                                        if (throwable != null) {
+                                            log.error(throwable.getMessage(), throwable);
+                                        } else {
+                                            log.debug("Updated : {}", event.getRowValue());
+                                        }
+                                    });
+                });
                 column.setGraphic(columnLabel);
                 FontLoader fontLoader = Toolkit.getToolkit().getFontLoader();
                 float width = fontLoader.computeStringWidth(columnLabel.getText(), columnLabel.getFont());
@@ -222,12 +218,36 @@ public class MainController {
                 dataTableView.getColumns().add(column);
             });
 
-            ObservableList<Row> original = FXCollections.observableArrayList(resultSet.all());
+            List<DataObject> objects = resultSet.all().stream().map(row -> {
+                DataObject dataObject = new DataObject();
+                for (ColumnDefinitions.Definition definition : row.getColumnDefinitions()) {
+                    TypeCodec<Object> codec = CodecRegistry.DEFAULT_INSTANCE.codecFor(definition.getType());
+                    dataObject.set(definition.getName(), row.get(definition.getName(), codec));
+                }
+                return dataObject;
+            }).collect(Collectors.toList());
+
+            ObservableList<DataObject> original = FXCollections.observableArrayList(objects);
             dataTableView.setItems(original);
             dataTableView.refresh();
             filterButton.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, original));
             filterTextField.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, original));
             tableDataGridPane.setVisible(true);
+        });
+    }
+
+    private Callback<TableColumn<DataObject, Object>, TableCell<DataObject, Object>> cellFactory(
+            TypeCodec<Object> codec) {
+        return TextFieldTableCell.forTableColumn(new StringConverter<Object>() {
+            @Override
+            public String toString(Object object) {
+                return codec.format(object);
+            }
+
+            @Override
+            public Object fromString(String string) {
+                return codec.parse(string);
+            }
         });
     }
 

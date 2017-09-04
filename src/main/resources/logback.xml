@@ -63,4 +63,5 @@
     </if>
 
     <logger name="com.github.kindrat" level="DEBUG"/>
+    <logger name="org.springframework.cassandra.support" level="DEBUG"/>
 </configuration>

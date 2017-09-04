@@ -1,10 +1,15 @@
 package com.github.kindrat.cassandra.client.service;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ColumnMetadata;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Update;
 import com.github.kindrat.cassandra.client.exception.UrlSyntaxException;
+import com.github.kindrat.cassandra.client.ui.DataObject;
 import com.github.nginate.commons.lang.NStrings;
+import javafx.scene.control.TableColumn;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;
@@ -13,11 +18,13 @@ import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static java.util.stream.Collectors.toSet;
 import static org.springframework.util.ReflectionUtils.findField;
 import static org.springframework.util.ReflectionUtils.getField;
 
@@ -75,30 +82,33 @@ public class CassandraClientAdapter {
         return CompletableFuture.supplyAsync(() -> template.get().query(NStrings.format("select * from {}", table)));
     }
 
-    public CompletableFuture<Void> update(TableMetadata metadata, Row row) {
+    public CompletableFuture<Void> update(TableMetadata metadata, TableColumn.CellEditEvent<DataObject, Object> event) {
         return CompletableFuture.supplyAsync(() -> {
-            List<ColumnMetadata> primaryKey = metadata.getPrimaryKey();
-            List<ColumnMetadata> partitionKey = metadata.getPartitionKey();
+            Stream<ColumnMetadata> primaryKey = metadata.getPrimaryKey().stream();
+            Stream<ColumnMetadata> partitionKey = metadata.getPartitionKey().stream();
+
+            Set<String> keyNames = Stream.concat(primaryKey, partitionKey)
+                    .map(ColumnMetadata::getName)
+                    .collect(toSet());
+
+            int column = event.getTablePosition().getColumn();
+            String updatedColumn = metadata.getColumns().get(column).getName();
+
+            if (keyNames.contains(updatedColumn)) {
+                log.warn("Can't update primary key : {}", updatedColumn);
+            }
 
             Update update = QueryBuilder.update(metadata);
-            for (ColumnMetadata columnMetadata : metadata.getColumns()) {
-                if (!partitionKey.contains(columnMetadata) && !partitionKey.contains(columnMetadata)) {
-                    String name = columnMetadata.getName();
-                    update.with(QueryBuilder.add(name, row.getObject(name)));
-                }
+            update.with(QueryBuilder.set(updatedColumn, event.getNewValue()));
+
+            for (String columnName : keyNames) {
+                update.where(QueryBuilder.eq(columnName, event.getRowValue().get(columnName)));
             }
 
-            for (ColumnMetadata columnMetadata : primaryKey) {
-                String name = columnMetadata.getName();
-                update.where(QueryBuilder.eq(name, row.getObject(name)));
-            }
-
-            for (ColumnMetadata columnMetadata : partitionKey) {
-                String name = columnMetadata.getName();
-                update.where(QueryBuilder.eq(name, row.getObject(name)));
-            }
+            log.info("Executing update : {}", update);
 
             template.get().execute(update);
+            event.getRowValue().set(updatedColumn, event.getNewValue());
             return null;
         });
     }

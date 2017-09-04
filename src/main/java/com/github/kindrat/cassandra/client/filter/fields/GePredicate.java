@@ -1,9 +1,7 @@
 package com.github.kindrat.cassandra.client.filter.fields;
 
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.TypeCodec;
-
-import static java.util.Objects.nonNull;
+import com.github.kindrat.cassandra.client.ui.DataObject;
 
 public class GePredicate extends RowPredicate {
     public GePredicate(String field, String value) {
@@ -11,13 +9,16 @@ public class GePredicate extends RowPredicate {
     }
 
     @Override
-    public boolean test(Row row) {
-        TypeCodec<Comparable> typeCodec = getColumnCodec(row);
-        Comparable typedValue = typeCodec.parse(getValue());
-        Comparable actualValue = row.get(getField(), typeCodec);
-        //noinspection unchecked
-        return nonNull(actualValue)
-                && nonNull(typedValue)
-                && actualValue.compareTo(typedValue) >= 0;
+    public boolean test(DataObject data) {
+        TypeCodec<?> typeCodec = getColumnCodec(data.get(getField()));
+
+        Object expected = typeCodec.parse(getValue());
+        Object actual = data.get(getField());
+        if (expected instanceof Comparable && actual instanceof Comparable) {
+            //noinspection unchecked
+            return Comparable.class.cast(actual).compareTo(expected) >= 0;
+        } else {
+            return false;
+        }
     }
 }

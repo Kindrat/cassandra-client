@@ -1,7 +1,6 @@
 package com.github.kindrat.cassandra.client.filter.fields;
 
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.TypeCodec;
+import com.github.kindrat.cassandra.client.ui.DataObject;
 
 import java.util.regex.Pattern;
 
@@ -13,11 +12,10 @@ public class LikePredicate extends RowPredicate {
     }
 
     @Override
-    public boolean test(Row row) {
-        TypeCodec<Comparable> typeCodec = getColumnCodec(row);
+    public boolean test(DataObject data) {
         String value = getValue();
         Pattern pattern = Pattern.compile(value);
-        Object actualValue = row.get(getField(), typeCodec);
+        Object actualValue = data.get(getField());
         //noinspection unchecked
         return nonNull(actualValue)
                 && pattern.matcher(actualValue.toString()).find();
