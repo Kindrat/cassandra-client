@@ -1,40 +1,63 @@
 # Cassandra GUI client
 
-Simple client to show table data and DDL and update it (hopefully will be added soon). All columns are threaten as 
-strings:
-```
-        tableMetadata.getColumns().forEach(columnMetadata -> {
-            TableColumn<Row, String> column = new TableColumn<>();
-            Label columnLabel = new Label(columnMetadata.getName());
-            columnLabel.setTooltip(new Tooltip(columnMetadata.getType().asFunctionParameterString()));
-            column.setCellValueFactory(param -> {
-                String value = Objects.toString(param.getValue().getObject(columnMetadata.getName()), "null");
-                return new SimpleStringProperty(value);
-            });
-            column.setGraphic(columnLabel);
-            dataTbl.getColumns().add(column);
-        });
-```
+This client is intended to be a simple GUI solution to work with cassandra 3.
 
 What it already can:
 * connect to cassandra
 * load and show tables
 * show table DDL
-* show table data (simple table view with header)
-* apply simple filter to loaded data
+* show table data (simple editable table view with header)
+* apply composite filters to loaded data
 * execute query
 
 Planned:
-* composite filters
-* respect field type in filtering
-* editable values
+* lazy data load/pagination
 * add/delete tables
+* validation in filter values
+* safe mode with manual commit-reset
 * add/save connections
+* select driver
+* load driver files
 * packaging
 
-### Available filters
+### Editor window
+On selecting table data from context menu in table list all rows are loaded from cassandra
+that is quite dangerous when having millions of entries in single table. Lazy loading and
+pagination is planned but not implemented yet. <br/>
+On cell edit updated row is immediately sent to cassandra - I'm planning to add *safe mode*
+by executing DB queries only on *commit button* click with ability to reset all local uncommited
+changes.
 
-* equal check for one field : _fieldname=value_
+### Available filters
+Type of cassandra column is respected. String value from filter is converted to same 
+type using cassandra driver codecs and column metadata. Filters are combined with
+`AND` `OR` keywords and parentheses brackets.
+
+```SQL
+var1 = val1 AND var2 <= val2 OR (var1 != val2 AND var5 LIKE .*test_value{1,2}.*)
+```
+
+* **equal check**<br/>
+*field = value*<br/>
+
+* **not equal**<br/>
+*field != value*<br/>
+
+* **less or equal**<br/>
+*field <= value*<br/>
+
+* **less than**<br/>
+*field < value*<br/>
+
+* **greater or equal**<br/>
+*field >= value*<br/>
+
+* **greater than**<br/>
+*field > value*<br/>
+
+* **string REGEX check**<br/>
+*field LIKE value*<br/>
+value should represent Java Pattern-style regex
 
 ### GUI
 
