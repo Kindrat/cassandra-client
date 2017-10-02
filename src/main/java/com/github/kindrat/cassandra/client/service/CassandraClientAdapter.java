@@ -12,6 +12,7 @@ import com.github.nginate.commons.lang.NStrings;
 import javafx.scene.control.TableColumn;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.data.cassandra.config.CassandraSessionFactoryBean;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
@@ -40,9 +41,12 @@ public class CassandraClientAdapter {
      *
      * @param url      cassandra url containing host and port (localhost:9042)
      * @param keyspace cassandra keyspace
+     * @param username cassandra username
+     * @param password cassandra password
      * @return future providing new instance of {@link CassandraAdminTemplate template} to manage cassandra data
      */
-    public CompletableFuture<CassandraAdminTemplate> connect(String url, String keyspace) {
+    public CompletableFuture<CassandraAdminTemplate> connect(String url, String keyspace, String username,
+            String password) {
         return CompletableFuture.supplyAsync(() -> {
             if (isNullOrEmpty(keyspace) || isNullOrEmpty(url)) {
                 throw new UrlSyntaxException("Both url and keyspace are required");
@@ -59,10 +63,15 @@ public class CassandraClientAdapter {
                 throw new UrlSyntaxException("Invalid port : " + urlParts[1]);
             }
 
-            Cluster cluster = Cluster.builder()
+            Cluster.Builder builder = Cluster.builder()
                     .addContactPoint(urlParts[0])
-                    .withPort(port)
-                    .build();
+                    .withPort(port);
+
+            if (StringUtils.isNoneBlank(username, password)) {
+                builder.withCredentials(username, password);
+            }
+
+            Cluster cluster = builder.build();
 
             CassandraSessionFactoryBean factory =
                     beanFactory.getBean(CassandraSessionFactoryBean.class, cluster, keyspace);

@@ -10,7 +10,10 @@ public class UIProperties {
     private Integer aboutBoxWidth = 300;
     private Integer aboutBoxSpacing = 20;
 
-    private Integer newConnectHeight = 150;
+    private Integer newConnectHeight = 175;
     private Integer newConnectWidth = 250;
     private Integer newConnectSpacing = 20;
+
+    private Integer credentialsBoxHeight = 93;
+    private Integer credentialsBoxSpacing = 20;
 }

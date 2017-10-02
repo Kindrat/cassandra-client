@@ -4,29 +4,37 @@ import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
-import java.util.function.BiConsumer;
-
+@Slf4j
 public class NewConnectionBox extends Stage {
     private final MessageByLocaleService localeService;
-    private final BiConsumer<String, String> valueHandler;
+    private final UIProperties uiProperties;
+    private final ConnectionDataHandler valueHandler;
     private final TextField urlField;
     private final TextField keyspaceField;
+    private final AuthCredentialsBox credentialsBox;
+    private final CheckBox authTriggerBox;
+    private final ObservableList<Node> children;
 
     public NewConnectionBox(Stage parent, MessageByLocaleService localeService, UIProperties uiProperties,
-                            BiConsumer<String, String> valueHandler) {
+            ConnectionDataHandler valueHandler) {
         this.localeService = localeService;
+        this.uiProperties = uiProperties;
         this.valueHandler = valueHandler;
 
         initModality(Modality.APPLICATION_MODAL);
@@ -36,11 +44,17 @@ public class NewConnectionBox extends Stage {
         VBox connectBox = new VBox(uiProperties.getNewConnectSpacing());
         connectBox.setAlignment(Pos.CENTER);
         Scene content = new Scene(connectBox, uiProperties.getNewConnectWidth(), uiProperties.getNewConnectHeight());
-        ObservableList<Node> children = connectBox.getChildren();
+        children = connectBox.getChildren();
         urlField = getUrlField(uiProperties.getNewConnectWidth());
         children.add(urlField);
         keyspaceField = getKeyspaceField(uiProperties.getNewConnectWidth());
         children.add(keyspaceField);
+        authTriggerBox = getAuthTriggerBox();
+        children.add(authTriggerBox);
+
+        credentialsBox = new AuthCredentialsBox(localeService, uiProperties);
+        credentialsBox.setMinWidth(uiProperties.getNewConnectWidth() - 10);
+        credentialsBox.setMaxWidth(uiProperties.getNewConnectWidth() - 10);
 
         Button submitButton = buildButton();
         children.add(submitButton);
@@ -86,8 +100,33 @@ public class NewConnectionBox extends Stage {
         return url;
     }
 
+    private CheckBox getAuthTriggerBox() {
+        CheckBox checkBox = new CheckBox(localeService.getMessage("ui.menu.file.connect.auth.checkbox"));
+        checkBox.setSelected(false);
+        checkBox.addEventHandler(ActionEvent.ACTION, this::onAuthTrigger);
+        return checkBox;
+    }
+
     private void handleClick(Event event) {
-        valueHandler.accept(urlField.getText(), keyspaceField.getText());
-        close();
+        String url = urlField.getText();
+        String keyspace = keyspaceField.getText();
+
+        if (StringUtils.isNoneBlank(url, keyspace)) {
+            valueHandler.onConnectionData(url, keyspace, credentialsBox.getUsername(), credentialsBox.getPassword());
+            close();
+        }
+    }
+
+    private void onAuthTrigger(ActionEvent event) {
+        boolean shouldShow = authTriggerBox.isSelected();
+        if (shouldShow) {
+            children.add(2, credentialsBox);
+            credentialsBox.setVisible(!credentialsBox.isVisible());
+            setHeight(getHeight() + uiProperties.getCredentialsBoxHeight());
+        } else {
+            credentialsBox.setVisible(false);
+            children.remove(2);
+            setHeight(getHeight() - uiProperties.getCredentialsBoxHeight());
+        }
     }
 }

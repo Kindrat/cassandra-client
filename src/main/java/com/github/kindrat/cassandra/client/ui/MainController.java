@@ -3,11 +3,14 @@ package com.github.kindrat.cassandra.client.ui;
 import com.datastax.driver.core.*;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
+import com.github.kindrat.cassandra.client.ui.editor.EventLogger;
 import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
 import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
 import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
+import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
+import com.github.kindrat.cassandra.client.ui.menu.file.ConnectionDataHandler;
 import com.sun.javafx.tk.FontLoader;
 import com.sun.javafx.tk.Toolkit;
 import javafx.beans.property.SimpleObjectProperty;
@@ -34,16 +37,11 @@ import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-import static com.github.kindrat.cassandra.client.util.CqlUtil.formatDDL;
-import static com.github.kindrat.cassandra.client.util.CqlUtil.getSelectTable;
-import static com.github.kindrat.cassandra.client.util.CqlUtil.isSelect;
+import static com.github.kindrat.cassandra.client.util.CqlUtil.*;
 import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
-import static com.github.kindrat.cassandra.client.util.UIUtil.disable;
-import static com.github.kindrat.cassandra.client.util.UIUtil.enable;
-import static com.github.nginate.commons.lang.NStrings.format;
+import static com.github.kindrat.cassandra.client.util.UIUtil.*;
 import static javafx.application.Platform.runLater;
 import static javafx.collections.FXCollections.emptyObservableList;
 import static javafx.collections.FXCollections.observableArrayList;
@@ -61,6 +59,8 @@ public class MainController {
     private View view;
     @Autowired
     private FilterTextField filterTextField;
+    @Autowired
+    private EventLogger eventLogger;
 
     private ContextMenu tableContext;
     private Map<String, TableMetadata> tableMetadata;
@@ -80,10 +80,6 @@ public class MainController {
     @FXML
     private TextField queryTextField;
     @FXML
-    private Label eventLabel;
-    @FXML
-    private Label serverLabel;
-    @FXML
     private AnchorPane editorAnchor;
     @FXML
     private TextArea ddlTextArea;
@@ -95,6 +91,8 @@ public class MainController {
     private GridPane filterGrid;
     @FXML
     private Button filterButton;
+    @FXML
+    private AnchorPane eventAnchor;
 
     @PostConstruct
     public void init() {
@@ -129,6 +127,10 @@ public class MainController {
         dataTableView.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         dataTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         dataTableView.getSelectionModel().setCellSelectionEnabled(true);
+        dataTableView.setOnMouseClicked(new TableClickEvent(dataTableView));
+        eventAnchor.getChildren().add(eventLogger);
+        fillParent(eventLogger);
+        eventLogger.setVisible(true);
     }
 
     private String getSelectedTable() {
@@ -160,12 +162,12 @@ public class MainController {
 
     private void showDataForTable(String tableName) {
         long tableSize = clientAdapter.count(tableName);
-        fireLogEvent("Loading data for {}", tableName);
+        eventLogger.fireLogEvent("Loading data for {}", tableName);
         clientAdapter.getAll(tableName).whenComplete((rows, throwable) -> {
             if (throwable != null) {
                 printError(throwable);
             } else {
-                fireLogEvent("Loaded {} entries from {}", tableSize, tableName);
+                eventLogger.fireLogEvent("Loaded {} entries from {}", tableSize, tableName);
                 showDataRows(tableName, rows);
             }
         });
@@ -178,14 +180,6 @@ public class MainController {
             dataTableView.getColumns().clear();
             dataTableView.getItems().clear();
             dataTableView.setEditable(true);
-            dataTableView.setOnMouseClicked(event -> {
-                //noinspection unchecked
-                TablePosition<DataObject, ?> tablePosition = dataTableView.focusModelProperty()
-                        .get()
-                        .focusedCellProperty()
-                        .get();
-                dataTableView.edit(tablePosition.getRow(), tablePosition.getTableColumn());
-            });
 
             metadataFor(tableName).getColumns().forEach(columnMetadata -> {
                 DataType type = columnMetadata.getType();
@@ -257,7 +251,7 @@ public class MainController {
 
     @FXML
     public void onConnectClick(ActionEvent event) {
-        beanFactory.getBean("newConnectionBox", (BiConsumer<String, String>) this::loadTables);
+        beanFactory.getBean("newConnectionBox", (ConnectionDataHandler) this::loadTables);
     }
 
     @FXML
@@ -283,16 +277,16 @@ public class MainController {
     }
 
 
-    private void loadTables(String url, String keyspace) {
+    private void loadTables(String url, String keyspace, String username, String password) {
         tableDataGridPane.setVisible(false);
         ddlTextArea.setVisible(false);
 
-        fireLogEvent("Connecting to {}/{} ...", url, keyspace);
+        eventLogger.clear();
+        eventLogger.fireLogEvent("Connecting to {}/{} ...", url, keyspace);
         tables.setItems(emptyObservableList());
-        serverLabel.setText("");
         disable(plusButton, minusButton, queryTextField, runButton, tables, applyButton, cancelButton);
 
-        clientAdapter.connect(url, keyspace)
+        clientAdapter.connect(url, keyspace, username, password)
                 .thenApply(CassandraAdminTemplate::getKeyspaceMetadata)
                 .thenApply(KeyspaceMetadata::getTables)
                 .thenApply(tables -> toMap(tables, AbstractTableMetadata::getName))
@@ -309,20 +303,12 @@ public class MainController {
     private void showTableNames(String url, String keyspace) {
         runLater(() -> {
             tables.setItems(observableArrayList(tableMetadata.keySet()).sorted());
-            serverLabel.setText(url + "/" + keyspace);
-            fireLogEvent("Loaded tables from {}/{}", url, keyspace);
+            eventLogger.printServerName(url, keyspace);
+            eventLogger.fireLogEvent("Loaded tables from {}/{}", url, keyspace);
             enable(queryTextField, tables);
         });
     }
 
-
-    private void fireLogEvent(String template, Object... args) {
-        runLater(() -> {
-            String message = format(template, args);
-            log.info(message);
-            eventLabel.setText(message);
-        });
-    }
 
     private void printError(Throwable t) {
         runLater(() -> {

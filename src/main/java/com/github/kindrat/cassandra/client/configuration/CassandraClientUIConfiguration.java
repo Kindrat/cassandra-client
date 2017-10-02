@@ -4,8 +4,10 @@ import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.View;
+import com.github.kindrat.cassandra.client.ui.editor.EventLogger;
 import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
 import com.github.kindrat.cassandra.client.ui.menu.about.AboutBox;
+import com.github.kindrat.cassandra.client.ui.menu.file.ConnectionDataHandler;
 import com.github.kindrat.cassandra.client.ui.menu.file.NewConnectionBox;
 import javafx.fxml.FXMLLoader;
 import javafx.stage.Stage;
@@ -20,7 +22,6 @@ import org.springframework.context.annotation.Scope;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.function.BiConsumer;
 
 @SuppressWarnings("SpringJavaAutowiringInspection")
 @Configuration
@@ -48,7 +49,7 @@ public class CassandraClientUIConfiguration {
 
     @Bean
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
-    public Stage newConnectionBox(BiConsumer<String, String> valueHandler) {
+    public Stage newConnectionBox(ConnectionDataHandler valueHandler) {
         return new NewConnectionBox(getMainView().getPrimaryStage(), localeService, uiProperties, valueHandler);
     }
 
@@ -56,6 +57,12 @@ public class CassandraClientUIConfiguration {
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
     public FilterTextField filterTextField() {
         return new FilterTextField(localeService);
+    }
+
+    @Bean
+    @Scope(BeanDefinition.SCOPE_PROTOTYPE)
+    public EventLogger eventLogger() {
+        return new EventLogger();
     }
 
     @SneakyThrows
