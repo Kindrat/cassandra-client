@@ -2,7 +2,9 @@ package com.github.kindrat.cassandra.client.ui.menu.file;
 
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
+import com.github.kindrat.cassandra.client.ui.ConnectionData;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
+import com.github.kindrat.cassandra.client.ui.menu.ConnectionDataHandler;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
@@ -12,7 +14,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
@@ -27,7 +28,7 @@ public class NewConnectionBox extends Stage {
     private final ConnectionDataHandler valueHandler;
     private final TextField urlField;
     private final TextField keyspaceField;
-    private final AuthCredentialsBox credentialsBox;
+    private final AuthCredentialsBox credentials;
     private final CheckBox authTriggerBox;
     private final ObservableList<Node> children;
 
@@ -52,9 +53,9 @@ public class NewConnectionBox extends Stage {
         authTriggerBox = getAuthTriggerBox();
         children.add(authTriggerBox);
 
-        credentialsBox = new AuthCredentialsBox(localeService, uiProperties);
-        credentialsBox.setMinWidth(uiProperties.getNewConnectWidth() - 10);
-        credentialsBox.setMaxWidth(uiProperties.getNewConnectWidth() - 10);
+        credentials = new AuthCredentialsBox(localeService, uiProperties);
+        credentials.setMinWidth(uiProperties.getNewConnectWidth() - 10);
+        credentials.setMaxWidth(uiProperties.getNewConnectWidth() - 10);
 
         Button submitButton = buildButton();
         children.add(submitButton);
@@ -83,7 +84,6 @@ public class NewConnectionBox extends Stage {
         TextField keyspace = new TextField();
         keyspace.setPromptText(localeService.getMessage("ui.menu.file.connect.keyspace.text"));
         keyspace.setAlignment(Pos.TOP_CENTER);
-        keyspace.setTooltip(new Tooltip(localeService.getMessage("ui.menu.file.connect.keyspace.tooltip")));
         keyspace.setMinWidth(width - 10);
         keyspace.setMaxWidth(width - 10);
         keyspace.setOnAction(this::handleClick);
@@ -93,7 +93,6 @@ public class NewConnectionBox extends Stage {
     private TextField getUrlField(int width) {
         TextField url = new TextField();
         url.setPromptText(localeService.getMessage("ui.menu.file.connect.url.text"));
-        url.setTooltip(new Tooltip(localeService.getMessage("ui.menu.file.connect.url.tooltip")));
         url.setAlignment(Pos.CENTER);
         url.setMinWidth(width - 10);
         url.setMaxWidth(width - 10);
@@ -107,24 +106,27 @@ public class NewConnectionBox extends Stage {
         return checkBox;
     }
 
+    @SuppressWarnings("unused")
     private void handleClick(Event event) {
         String url = urlField.getText();
         String keyspace = keyspaceField.getText();
 
         if (StringUtils.isNoneBlank(url, keyspace)) {
-            valueHandler.onConnectionData(url, keyspace, credentialsBox.getUsername(), credentialsBox.getPassword());
+            valueHandler.onConnectionData(new ConnectionData(url, keyspace,
+                    credentials.getUsername(), credentials.getPassword()));
             close();
         }
     }
 
+    @SuppressWarnings("unused")
     private void onAuthTrigger(ActionEvent event) {
         boolean shouldShow = authTriggerBox.isSelected();
         if (shouldShow) {
-            children.add(2, credentialsBox);
-            credentialsBox.setVisible(!credentialsBox.isVisible());
+            children.add(2, credentials);
+            credentials.setVisible(!credentials.isVisible());
             setHeight(getHeight() + uiProperties.getCredentialsBoxHeight());
         } else {
-            credentialsBox.setVisible(false);
+            credentials.setVisible(false);
             children.remove(2);
             setHeight(getHeight() - uiProperties.getCredentialsBoxHeight());
         }

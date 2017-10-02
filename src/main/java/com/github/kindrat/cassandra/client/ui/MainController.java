@@ -10,15 +10,12 @@ import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
-import com.github.kindrat.cassandra.client.ui.menu.file.ConnectionDataHandler;
 import com.sun.javafx.tk.FontLoader;
 import com.sun.javafx.tk.Toolkit;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
@@ -26,7 +23,6 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
-import javafx.stage.Stage;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
@@ -101,8 +97,8 @@ public class MainController {
     @PostConstruct
     public void init() {
         disable(plusButton, minusButton, queryTextField, runButton, tables, applyButton, cancelButton);
-        Menu fileMenu = (Menu) beanFactory.getBean("fileMenu", (EventHandler<ActionEvent>) this::onConnectClick);
-        Menu helpMenu = (Menu) beanFactory.getBean("helpMenu", (EventHandler<ActionEvent>) this::onAboutClick);
+        Menu fileMenu = (Menu) beanFactory.getBean("fileMenu");
+        Menu helpMenu = (Menu) beanFactory.getBean("helpMenu");
 
         menu.getMenus().addAll(fileMenu, helpMenu);
 
@@ -136,7 +132,7 @@ public class MainController {
         dataTableView.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         dataTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         dataTableView.getSelectionModel().setCellSelectionEnabled(true);
-        dataTableView.setOnMouseClicked(new TableClickEvent(dataTableView));
+        dataTableView.setOnMouseClicked(new TableClickEvent<>(dataTableView));
         eventAnchor.getChildren().add(eventLogger);
         fillParent(eventLogger);
         eventLogger.setVisible(true);
@@ -239,31 +235,10 @@ public class MainController {
         });
     }
 
-    private Callback<TableColumn<DataObject, Object>, TableCell<DataObject, Object>> cellFactory(
-            TypeCodec<Object> codec) {
-        return TextFieldTableCell.forTableColumn(new StringConverter<Object>() {
-            @Override
-            public String toString(Object object) {
-                return codec.format(object);
-            }
 
-            @Override
-            public Object fromString(String string) {
-                return codec.parse(string);
-            }
-        });
-    }
 
     private TableMetadata metadataFor(String tableName) {
         return tableMetadata.get(tableName);
-    }
-
-    private void onConnectClick(ActionEvent event) {
-        beanFactory.getBean("newConnectionBox", (ConnectionDataHandler) this::loadTables);
-    }
-
-    private void onAboutClick(ActionEvent event) {
-        beanFactory.getBean("aboutBox", Stage.class);
     }
 
     @FXML
@@ -284,16 +259,16 @@ public class MainController {
     }
 
 
-    private void loadTables(String url, String keyspace, String username, String password) {
+    public void loadTables(ConnectionData connection) {
         tableDataGridPane.setVisible(false);
         ddlTextArea.setVisible(false);
 
         eventLogger.clear();
-        eventLogger.fireLogEvent("Connecting to {}/{} ...", url, keyspace);
+        eventLogger.fireLogEvent("Connecting to {}/{} ...", connection.getUrl(), connection.getKeyspace());
         tables.setItems(emptyObservableList());
         disable(plusButton, minusButton, queryTextField, runButton, tables, applyButton, cancelButton);
 
-        clientAdapter.connect(url, keyspace, username, password)
+        clientAdapter.connect(connection)
                 .thenApply(CassandraAdminTemplate::getKeyspaceMetadata)
                 .thenApply(KeyspaceMetadata::getTables)
                 .thenApply(tables -> toMap(tables, AbstractTableMetadata::getName))
@@ -302,7 +277,7 @@ public class MainController {
                         printError(error);
                     } else {
                         tableMetadata = metadata;
-                        showTableNames(url, keyspace);
+                        showTableNames(connection.getUrl(), connection.getKeyspace());
                     }
                 });
     }

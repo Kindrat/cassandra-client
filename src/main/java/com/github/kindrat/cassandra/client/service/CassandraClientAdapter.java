@@ -7,6 +7,7 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Update;
 import com.github.kindrat.cassandra.client.exception.UrlSyntaxException;
+import com.github.kindrat.cassandra.client.ui.ConnectionData;
 import com.github.kindrat.cassandra.client.ui.DataObject;
 import com.github.nginate.commons.lang.NStrings;
 import javafx.scene.control.TableColumn;
@@ -39,19 +40,15 @@ public class CassandraClientAdapter {
     /**
      * Create new session factory bean for provided cassandra endpoint
      *
-     * @param url      cassandra url containing host and port (localhost:9042)
-     * @param keyspace cassandra keyspace
-     * @param username cassandra username
-     * @param password cassandra password
+     * @param connectionData connection metadata
      * @return future providing new instance of {@link CassandraAdminTemplate template} to manage cassandra data
      */
-    public CompletableFuture<CassandraAdminTemplate> connect(String url, String keyspace, String username,
-            String password) {
+    public CompletableFuture<CassandraAdminTemplate> connect(ConnectionData connectionData) {
         return CompletableFuture.supplyAsync(() -> {
-            if (isNullOrEmpty(keyspace) || isNullOrEmpty(url)) {
+            if (isNullOrEmpty(connectionData.getKeyspace()) || isNullOrEmpty(connectionData.getUrl())) {
                 throw new UrlSyntaxException("Both url and keyspace are required");
             }
-            String[] urlParts = url.split(":");
+            String[] urlParts = connectionData.getUrl().split(":");
             if (urlParts.length != 2) {
                 throw new UrlSyntaxException("Url should contain host:port");
             }
@@ -67,14 +64,14 @@ public class CassandraClientAdapter {
                     .addContactPoint(urlParts[0])
                     .withPort(port);
 
-            if (StringUtils.isNoneBlank(username, password)) {
-                builder.withCredentials(username, password);
+            if (StringUtils.isNoneBlank(connectionData.getUsername(), connectionData.getPassword())) {
+                builder.withCredentials(connectionData.getUsername(), connectionData.getPassword());
             }
 
             Cluster cluster = builder.build();
 
             CassandraSessionFactoryBean factory =
-                    beanFactory.getBean(CassandraSessionFactoryBean.class, cluster, keyspace);
+                    beanFactory.getBean(CassandraSessionFactoryBean.class, cluster, connectionData.getKeyspace());
             Field adminTemplateField = findField(CassandraSessionFactoryBean.class, "admin");
             adminTemplateField.setAccessible(true);
             CassandraAdminTemplate template = (CassandraAdminTemplate) getField(adminTemplateField, factory);

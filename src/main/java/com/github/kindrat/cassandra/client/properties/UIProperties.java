@@ -16,4 +16,10 @@ public class UIProperties {
 
     private Integer credentialsBoxHeight = 93;
     private Integer credentialsBoxSpacing = 20;
+
+    private Integer connectionManagerHeight = 400;
+    private Integer connectionManagerWidth = 600;
+    private Integer connectionManagerRightPaneWidth = 60;
+    private Integer connectionManagerButtonWidth = 30;
+    private Integer connectionManagerButtonsSpacing = 50;
 }
