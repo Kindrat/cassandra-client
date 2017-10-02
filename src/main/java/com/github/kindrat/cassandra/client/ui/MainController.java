@@ -18,6 +18,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
@@ -66,6 +67,9 @@ public class MainController {
     private Map<String, TableMetadata> tableMetadata;
 
     @FXML
+    private MenuBar menu;
+
+    @FXML
     private ListView<String> tables;
     @FXML
     private Button plusButton;
@@ -97,6 +101,11 @@ public class MainController {
     @PostConstruct
     public void init() {
         disable(plusButton, minusButton, queryTextField, runButton, tables, applyButton, cancelButton);
+        Menu fileMenu = (Menu) beanFactory.getBean("fileMenu", (EventHandler<ActionEvent>) this::onConnectClick);
+        Menu helpMenu = (Menu) beanFactory.getBean("helpMenu", (EventHandler<ActionEvent>) this::onAboutClick);
+
+        menu.getMenus().addAll(fileMenu, helpMenu);
+
         queryTextField.textProperty().addListener(TextFieldButtonWatcher.wrap(runButton));
         queryTextField.setPromptText(localeService.getMessage("ui.editor.query.textbox.tooltip"));
         runButton.setTooltip(new Tooltip(localeService.getMessage("ui.editor.query.button.tooltip")));
@@ -249,13 +258,11 @@ public class MainController {
         return tableMetadata.get(tableName);
     }
 
-    @FXML
-    public void onConnectClick(ActionEvent event) {
+    private void onConnectClick(ActionEvent event) {
         beanFactory.getBean("newConnectionBox", (ConnectionDataHandler) this::loadTables);
     }
 
-    @FXML
-    public void onAboutClick(ActionEvent event) {
+    private void onAboutClick(ActionEvent event) {
         beanFactory.getBean("aboutBox", Stage.class);
     }
 

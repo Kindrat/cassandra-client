@@ -9,7 +9,11 @@ import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
 import com.github.kindrat.cassandra.client.ui.menu.about.AboutBox;
 import com.github.kindrat.cassandra.client.ui.menu.file.ConnectionDataHandler;
 import com.github.kindrat.cassandra.client.ui.menu.file.NewConnectionBox;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuItem;
 import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -63,6 +67,34 @@ public class CassandraClientUIConfiguration {
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
     public EventLogger eventLogger() {
         return new EventLogger();
+    }
+
+    @Bean
+    @Scope(BeanDefinition.SCOPE_PROTOTYPE)
+    public Menu fileMenu(EventHandler<ActionEvent> connectCallback) {
+        Menu file = new Menu(localeService.getMessage("ui.menu.file"));
+        file.setMnemonicParsing(false);
+
+        MenuItem connect = new MenuItem(localeService.getMessage("ui.menu.file.connect"));
+        connect.setMnemonicParsing(false);
+        connect.setOnAction(connectCallback);
+
+        file.getItems().add(connect);
+        return file;
+    }
+
+    @Bean
+    @Scope(BeanDefinition.SCOPE_PROTOTYPE)
+    public Menu helpMenu(EventHandler<ActionEvent> aboutCallback) {
+        Menu file = new Menu(localeService.getMessage("ui.menu.help"));
+        file.setMnemonicParsing(false);
+
+        MenuItem about = new MenuItem(localeService.getMessage("ui.menu.help.about"));
+        about.setMnemonicParsing(false);
+        about.setOnAction(aboutCallback);
+
+        file.getItems().add(about);
+        return file;
     }
 
     @SneakyThrows

@@ -14,22 +14,9 @@
             prefHeight="555.0" prefWidth="876.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.github.kindrat.cassandra.client.ui.MainController">
     <children>
-        <MenuBar prefHeight="29.0" prefWidth="876.0" AnchorPane.bottomAnchor="30.0" AnchorPane.leftAnchor="0.0"
-                 AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-            <menus>
-                <Menu mnemonicParsing="false" text="File">
-                    <items>
-                        <MenuItem fx:id="connectButton" mnemonicParsing="false" onAction="#onConnectClick"
-                                  text="Connect"/>
-                    </items>
-                </Menu>
-                <Menu mnemonicParsing="false" text="Help">
-                    <items>
-                        <MenuItem fx:id="aboutButton" mnemonicParsing="false" onAction="#onAboutClick" text="About"/>
-                    </items>
-                </Menu>
-            </menus>
-        </MenuBar>
+        <MenuBar fx:id="menu" prefHeight="29.0" prefWidth="876.0" AnchorPane.bottomAnchor="30.0"
+                 AnchorPane.leftAnchor="0.0"
+                 AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
         <SplitPane dividerPositions="0.29797979797979796" layoutX="-3.0" layoutY="27.0" prefHeight="528.0"
                    prefWidth="876.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
                    AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0">
