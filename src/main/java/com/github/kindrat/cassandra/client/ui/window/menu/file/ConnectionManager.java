@@ -1,4 +1,4 @@
-package com.github.kindrat.cassandra.client.ui.menu.file;
+package com.github.kindrat.cassandra.client.ui.window.menu.file;
 
 import com.datastax.driver.core.TypeCodec;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
@@ -7,7 +7,7 @@ import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.ConnectionData;
 import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
-import com.github.kindrat.cassandra.client.ui.menu.ConnectionDataHandler;
+import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
 import com.google.common.io.Files;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;

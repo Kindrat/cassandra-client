@@ -22,4 +22,8 @@ public class UIProperties {
     private Integer connectionManagerRightPaneWidth = 60;
     private Integer connectionManagerButtonWidth = 30;
     private Integer connectionManagerButtonsSpacing = 50;
+
+    private Integer tablesPrefHeight = 100;
+    private Integer tablesPrefWidth = 250;
+    private Double tablesDividerPosition = 0.913;
 }

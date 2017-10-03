@@ -1,10 +1,10 @@
-package com.github.kindrat.cassandra.client.ui.menu.file;
+package com.github.kindrat.cassandra.client.ui.window.menu.file;
 
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.ConnectionData;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
-import com.github.kindrat.cassandra.client.ui.menu.ConnectionDataHandler;
+import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.Event;

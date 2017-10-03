@@ -7,10 +7,11 @@ import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.View;
 import com.github.kindrat.cassandra.client.ui.editor.EventLogger;
 import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
-import com.github.kindrat.cassandra.client.ui.menu.about.AboutBox;
-import com.github.kindrat.cassandra.client.ui.menu.ConnectionDataHandler;
-import com.github.kindrat.cassandra.client.ui.menu.file.ConnectionManager;
-import com.github.kindrat.cassandra.client.ui.menu.file.NewConnectionBox;
+import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
+import com.github.kindrat.cassandra.client.ui.window.menu.about.AboutBox;
+import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
+import com.github.kindrat.cassandra.client.ui.window.menu.file.ConnectionManager;
+import com.github.kindrat.cassandra.client.ui.window.menu.file.NewConnectionBox;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
@@ -105,6 +106,11 @@ public class CassandraClientUIConfiguration {
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
     public ConnectionManager connectionManager() {
         return new ConnectionManager(getMainView().getPrimaryStage(), localeService, uiProperties, storageProperties);
+    }
+
+    @Bean
+    public TablePanel tablePanel() {
+        return new TablePanel(uiProperties, localeService, getMainController());
     }
 
     @SneakyThrows

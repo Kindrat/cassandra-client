@@ -1,4 +1,4 @@
-package com.github.kindrat.cassandra.client.ui.menu.file;
+package com.github.kindrat.cassandra.client.ui.window.menu.file;
 
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;

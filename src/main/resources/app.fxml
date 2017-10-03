@@ -17,69 +17,10 @@
         <MenuBar fx:id="menu" prefHeight="29.0" prefWidth="876.0" AnchorPane.bottomAnchor="30.0"
                  AnchorPane.leftAnchor="0.0"
                  AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
-        <SplitPane dividerPositions="0.29797979797979796" layoutX="-3.0" layoutY="27.0" prefHeight="528.0"
+        <SplitPane fx:id="mainWindow" dividerPositions="0.29797979797979796" layoutX="-3.0" layoutY="27.0" prefHeight="528.0"
                    prefWidth="876.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
                    AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0">
             <items>
-                <AnchorPane maxWidth="250.0" minHeight="0.0" minWidth="250.0" prefHeight="160.0" prefWidth="250.0">
-                    <children>
-                        <SplitPane dividerPositions="0.9136276391554703" focusTraversable="false" maxHeight="40.0"
-                                   orientation="VERTICAL" prefHeight="40.0" prefWidth="160.0" scaleShape="false"
-                                   AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-                                   AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-                            <items>
-                                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="100.0" prefWidth="160.0">
-                                    <children>
-                                        <ListView fx:id="tables" onMouseClicked="#onTableSelection" prefHeight="480.0"
-                                                  prefWidth="256.0" AnchorPane.bottomAnchor="0.0"
-                                                  AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
-                                                  AnchorPane.topAnchor="0.0"/>
-                                    </children>
-                                </AnchorPane>
-                                <AnchorPane maxHeight="40.0" maxWidth="250.0" minHeight="40.0" minWidth="250.0"
-                                            prefHeight="40.0" prefWidth="250.0">
-                                    <children>
-                                        <GridPane AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-                                                  AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-                                            <columnConstraints>
-                                                <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="35.0"
-                                                                   minWidth="30.0" prefWidth="35.0"/>
-                                                <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="35.0"
-                                                                   minWidth="35.0" prefWidth="35.0"/>
-                                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
-                                                <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="35.0"
-                                                                   minWidth="35.0" prefWidth="35.0"/>
-                                                <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="35.0"
-                                                                   minWidth="35.0" prefWidth="35.0"/>
-                                                <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="10.0"
-                                                                   minWidth="10.0" prefWidth="10.0"/>
-                                            </columnConstraints>
-                                            <rowConstraints>
-                                                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
-                                            </rowConstraints>
-                                            <children>
-                                                <Button fx:id="plusButton" maxWidth="-Infinity" minWidth="-Infinity"
-                                                        mnemonicParsing="false" prefHeight="25.0" prefWidth="30.0"
-                                                        text="+"/>
-                                                <Button fx:id="minusButton" maxWidth="-Infinity" minWidth="-Infinity"
-                                                        mnemonicParsing="false" prefHeight="25.0" prefWidth="30.0"
-                                                        text="-" GridPane.columnIndex="1"/>
-                                                <Button fx:id="applyButton" alignment="CENTER_RIGHT"
-                                                        maxWidth="-Infinity" minWidth="-Infinity"
-                                                        mnemonicParsing="false" prefHeight="25.0" prefWidth="30.0"
-                                                        text="✓" GridPane.columnIndex="3"/>
-                                                <Button fx:id="cancelButton" alignment="CENTER_RIGHT"
-                                                        maxWidth="-Infinity" minWidth="-Infinity"
-                                                        mnemonicParsing="false" prefHeight="25.0" prefWidth="30.0"
-                                                        text="∅" GridPane.columnIndex="4"/>
-                                            </children>
-                                        </GridPane>
-                                    </children>
-                                </AnchorPane>
-                            </items>
-                        </SplitPane>
-                    </children>
-                </AnchorPane>
                 <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="527.0" prefWidth="597.0">
                     <children>
                         <SplitPane dividerPositions="0.07485604606525911" orientation="VERTICAL" pickOnBounds="false"

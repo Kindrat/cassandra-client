@@ -5,11 +5,11 @@ import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
 import com.github.kindrat.cassandra.client.ui.editor.EventLogger;
 import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
-import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
 import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
+import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
 import com.sun.javafx.tk.FontLoader;
 import com.sun.javafx.tk.Toolkit;
 import javafx.beans.property.SimpleObjectProperty;
@@ -19,12 +19,11 @@ import javafx.collections.ObservableMap;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.input.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
-import javafx.util.Callback;
-import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.BeanFactory;
@@ -40,7 +39,6 @@ import static com.github.kindrat.cassandra.client.util.CqlUtil.*;
 import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
 import static com.github.kindrat.cassandra.client.util.UIUtil.*;
 import static javafx.application.Platform.runLater;
-import static javafx.collections.FXCollections.emptyObservableList;
 import static javafx.collections.FXCollections.observableArrayList;
 
 @Slf4j
@@ -57,24 +55,16 @@ public class MainController {
     @Autowired
     private FilterTextField filterTextField;
     @Autowired
+    private TablePanel tablePanel;
+    @Autowired
     private EventLogger eventLogger;
 
-    private ContextMenu tableContext;
     private Map<String, TableMetadata> tableMetadata;
 
     @FXML
     private MenuBar menu;
-
     @FXML
-    private ListView<String> tables;
-    @FXML
-    private Button plusButton;
-    @FXML
-    private Button minusButton;
-    @FXML
-    private Button applyButton;
-    @FXML
-    private Button cancelButton;
+    private SplitPane mainWindow;
     @FXML
     private Button runButton;
     @FXML
@@ -96,9 +86,10 @@ public class MainController {
 
     @PostConstruct
     public void init() {
-        disable(plusButton, minusButton, queryTextField, runButton, tables, applyButton, cancelButton);
         Menu fileMenu = (Menu) beanFactory.getBean("fileMenu");
         Menu helpMenu = (Menu) beanFactory.getBean("helpMenu");
+
+        mainWindow.getItems().add(0, tablePanel);
 
         menu.getMenus().addAll(fileMenu, helpMenu);
 
@@ -118,17 +109,7 @@ public class MainController {
                     });
                 }
         );
-        tables.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        tables.setOnContextMenuRequested(this::onTableContextMenu);
-        tables.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                filterTextField.setTableMetadata(tableMetadata.get(newValue));
-            }
-            tableContext.hide();
-        });
-        tableContext = new TableListContext(localeService, () -> showDDLForTable(getSelectedTable()),
-                () -> showDataForTable(getSelectedTable()));
-
+        tablePanel.setNewValueListener(table -> filterTextField.setTableMetadata(tableMetadata.get(table)));
         dataTableView.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         dataTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         dataTableView.getSelectionModel().setCellSelectionEnabled(true);
@@ -136,10 +117,7 @@ public class MainController {
         eventAnchor.getChildren().add(eventLogger);
         fillParent(eventLogger);
         eventLogger.setVisible(true);
-    }
-
-    private String getSelectedTable() {
-        return tables.getSelectionModel().getSelectedItem();
+        disable(queryTextField, runButton, tablePanel);
     }
 
     public void onWindowLoad() {
@@ -159,13 +137,13 @@ public class MainController {
         return view.getPrimaryStage().getScene().getAccelerators();
     }
 
-    private void showDDLForTable(String tableName) {
+    public void showDDLForTable(String tableName) {
         tableDataGridPane.setVisible(false);
         ddlTextArea.setText(formatDDL(metadataFor(tableName).toString()));
         ddlTextArea.setVisible(true);
     }
 
-    private void showDataForTable(String tableName) {
+    public void showDataForTable(String tableName) {
         long tableSize = clientAdapter.count(tableName);
         eventLogger.fireLogEvent("Loading data for {}", tableName);
         clientAdapter.getAll(tableName).whenComplete((rows, throwable) -> {
@@ -236,28 +214,9 @@ public class MainController {
     }
 
 
-
     private TableMetadata metadataFor(String tableName) {
         return tableMetadata.get(tableName);
     }
-
-    @FXML
-    public void onTableSelection(MouseEvent event) {
-        ObservableList<String> selectedItems = tables.getSelectionModel().getSelectedItems();
-        if (selectedItems.isEmpty()) {
-            disable(plusButton, minusButton);
-        } else {
-            enable(plusButton, minusButton);
-        }
-    }
-
-    private void onTableContextMenu(ContextMenuEvent event) {
-        ObservableList<String> selectedItems = tables.getSelectionModel().getSelectedItems();
-        if (!selectedItems.isEmpty()) {
-            tableContext.show(tables, event.getScreenX(), event.getScreenY());
-        }
-    }
-
 
     public void loadTables(ConnectionData connection) {
         tableDataGridPane.setVisible(false);
@@ -265,8 +224,8 @@ public class MainController {
 
         eventLogger.clear();
         eventLogger.fireLogEvent("Connecting to {}/{} ...", connection.getUrl(), connection.getKeyspace());
-        tables.setItems(emptyObservableList());
-        disable(plusButton, minusButton, queryTextField, runButton, tables, applyButton, cancelButton);
+        tablePanel.clear();
+        disable(tablePanel, queryTextField, runButton);
 
         clientAdapter.connect(connection)
                 .thenApply(CassandraAdminTemplate::getKeyspaceMetadata)
@@ -284,10 +243,10 @@ public class MainController {
 
     private void showTableNames(String url, String keyspace) {
         runLater(() -> {
-            tables.setItems(observableArrayList(tableMetadata.keySet()).sorted());
+            tablePanel.showTables(observableArrayList(tableMetadata.keySet()).sorted());
             eventLogger.printServerName(url, keyspace);
             eventLogger.fireLogEvent("Loaded tables from {}/{}", url, keyspace);
-            enable(queryTextField, tables);
+            enable(queryTextField, tablePanel);
         });
     }
 
