@@ -41,6 +41,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     private final StorageProperties storageProperties;
     private final TableView<ConnectionData> table;
     private BeanFactory beanFactory;
+    private final File configurationsFile;
 
     @SneakyThrows
     public ConnectionManager(Stage parent, MessageByLocaleService localeService, UIProperties uiProperties,
@@ -63,7 +64,10 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
         connectionBox.setMaxWidth(leftWidth);
 
         table = buildConnectionDataTable(leftWidth);
-        File configurationsFile = getConfigurationsFile();
+        configurationsFile = getConfigurationsFile();
+        if (!configurationsFile.exists()) {
+            configurationsFile.createNewFile();
+        }
         String json = Files.toString(configurationsFile, UTF_8);
         if (!StringUtils.isBlank(json)) {
             List<ConnectionData> connections = fromJson(json, ConnectionData.class);
@@ -97,11 +101,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
 
     @SneakyThrows
     private File getConfigurationsFile() {
-        File file = new File(storageProperties.getLocation(), storageProperties.getPropertiesFile());
-        if (!file.exists()) {
-            flushConfigFile();
-        }
-        return file;
+        return new File(storageProperties.getLocation(), storageProperties.getPropertiesFile());
     }
 
     private Button getButton(String text) {
@@ -166,7 +166,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
 
     private void onConnectionData(ConnectionData data) {
         table.getItems().add(data);
-        flushConfigFile();
+        flushConfigFile(configurationsFile);
     }
 
     private void onConnectionUsage() {
@@ -179,7 +179,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     private void onConnectionRemove() {
         doWithSelected(connectionData -> {
             table.getItems().remove(connectionData);
-            flushConfigFile();
+            flushConfigFile(configurationsFile);
         });
     }
 
@@ -194,8 +194,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     }
 
     @SneakyThrows
-    private void flushConfigFile() {
-        File configurationsFile = getConfigurationsFile();
+    private void flushConfigFile(File configurationsFile) {
         Files.write(toJson(table.getItems()), configurationsFile, UTF_8);
     }
 
