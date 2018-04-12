@@ -85,11 +85,14 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
         newConnection.setOnAction(event -> onNewConnection());
         Button removeConnection = getButton("-");
         removeConnection.setOnAction(event -> onConnectionRemove());
+        Button editConnection = getButton("✎");
+        editConnection.setOnAction(event -> onConnectionEdit());
         Button useConnection = getButton("✓");
         useConnection.setOnAction(event -> onConnectionUsage());
 
         buttons.getChildren().add(newConnection);
         buttons.getChildren().add(removeConnection);
+		buttons.getChildren().add(editConnection);
         buttons.getChildren().add(useConnection);
 
         SplitPane splitPane = new SplitPane(connectionBox, buttons);
@@ -105,10 +108,10 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     }
 
     private Button getButton(String text) {
-        Button newConnection = new Button(text);
-        newConnection.setMaxWidth(uiProperties.getConnectionManagerButtonWidth());
-        newConnection.setMinWidth(uiProperties.getConnectionManagerButtonWidth());
-        return newConnection;
+        Button button = new Button(text);
+        button.setMaxWidth(uiProperties.getConnectionManagerButtonWidth());
+        button.setMinWidth(uiProperties.getConnectionManagerButtonWidth());
+        return button;
     }
 
     private TableView<ConnectionData> buildConnectionDataTable(Integer leftWidth) {
@@ -166,6 +169,33 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
 
     private void onConnectionData(ConnectionData data) {
         table.getItems().add(data);
+        flushConfigFile(configurationsFile);
+    }
+
+    private void onConnectionEdit() {
+		TableView.TableViewSelectionModel<ConnectionData> selectionModel = table.getSelectionModel();
+        if (!selectionModel.isEmpty()) {
+			int focusedIndex = selectionModel.getFocusedIndex();
+            ConnectionData data = table.getItems().get(focusedIndex);
+            NewConnectionBox connectionBox = (NewConnectionBox) beanFactory.getBean("newConnectionBox",
+                    this, (ConnectionDataHandler) this::onConnectionEditData);
+            connectionBox.update(data);
+        }
+    }
+
+	private void onConnectionEditData(ConnectionData newData) {
+        TableView.TableViewSelectionModel<ConnectionData> selectionModel = table.getSelectionModel();
+        if (!selectionModel.isEmpty()) {
+            int focusedIndex = selectionModel.getFocusedIndex();
+            ConnectionData data = table.getItems().get(focusedIndex);
+            data.setKeyspace(newData.getKeyspace());
+            data.setPassword(newData.getPassword());
+            data.setUrl(newData.getUrl());
+            data.setUsername(newData.getUsername());
+			// hack: better way to refresh the display??
+			table.getColumns().get(0).setVisible(false);
+			table.getColumns().get(0).setVisible(true);
+		}           
         flushConfigFile(configurationsFile);
     }
 

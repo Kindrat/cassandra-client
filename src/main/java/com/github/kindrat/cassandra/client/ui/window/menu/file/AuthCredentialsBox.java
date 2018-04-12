@@ -30,6 +30,14 @@ public class AuthCredentialsBox extends VBox {
         return password.getText();
     }
 
+    public void setUsername(String userId) {
+        username.setText(userId);
+    }
+
+    public void setPassword(String passwd) {
+        password.setText(passwd);
+    }
+
     @Override
     protected void setWidth(double value) {
         super.setWidth(value);

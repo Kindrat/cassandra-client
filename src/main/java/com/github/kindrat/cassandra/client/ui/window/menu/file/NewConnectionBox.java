@@ -21,6 +21,8 @@ import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 @Slf4j
 public class NewConnectionBox extends Stage {
     private final MessageByLocaleService localeService;
@@ -66,6 +68,17 @@ public class NewConnectionBox extends Stage {
         urlField.requestFocus();
         setScene(content);
         show();
+    }
+
+    public void update(ConnectionData data) {
+        urlField.setText(data.getUrl());
+        keyspaceField.setText(data.getKeyspace());
+        if (isNotBlank(data.getUsername()) || isNotBlank(data.getPassword())) {
+            authTriggerBox.setSelected(true);
+            onAuthTrigger(null);
+            credentials.setUsername(data.getUsername());
+            credentials.setPassword(data.getPassword());
+        }
     }
 
     private Button buildButton() {

@@ -23,6 +23,7 @@ Planned:
 ## Requirements
 * Install JDK8 ([Oracle](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html), [OpenJDK](http://openjdk.java.net/))
 * Set `JAVA_HOME` env variable [doc](https://docs.oracle.com/cd/E19182-01/820-7851/inst_cli_jdk_javahome_t/)
+* If you are using OpenJDK, make sure to have installed openjfx.
 
 ## Build and run
 
