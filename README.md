@@ -20,6 +20,21 @@ Planned:
 * load driver files
 * packaging
 
+## Requirements
+* Install JDK8 ([Oracle](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html), [OpenJDK](http://openjdk.java.net/))
+* Set `JAVA_HOME` env variable [doc](https://docs.oracle.com/cd/E19182-01/820-7851/inst_cli_jdk_javahome_t/)
+
+## Build and run
+
+1. Clone the source if you haven't done so. `git clone https://github.com/Kindrat/cassandra-client.git`
+2. Go to the directory: cd `cassandra-client`
+3. Build sources using gradle:
+
+    3.1 For Windows `gradlew.bat build`
+    3.2 For Unix `gradlew build`
+    
+4. Run client `java -jar  cassadra-client-1.0.2.jar`
+
 ### Editor window
 On selecting table data from context menu in table list all rows are loaded from cassandra
 that is quite dangerous when having millions of entries in single table. Lazy loading and
