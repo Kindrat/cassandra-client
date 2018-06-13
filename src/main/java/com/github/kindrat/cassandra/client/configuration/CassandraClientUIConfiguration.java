@@ -7,6 +7,7 @@ import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.View;
 import com.github.kindrat.cassandra.client.ui.editor.EventLogger;
 import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
+import com.github.kindrat.cassandra.client.ui.editor.PaginationPanel;
 import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
 import com.github.kindrat.cassandra.client.ui.window.menu.about.AboutBox;
 import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
@@ -68,6 +69,11 @@ public class CassandraClientUIConfiguration {
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
     public EventLogger eventLogger() {
         return new EventLogger();
+    }
+
+    @Bean
+    public PaginationPanel paginationPanel() {
+        return new PaginationPanel();
     }
 
     @Bean

@@ -2,6 +2,7 @@ package com.github.kindrat.cassandra.client.util;
 
 import com.datastax.driver.core.TypeCodec;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.TextFieldTableCell;
@@ -10,6 +11,8 @@ import javafx.util.Callback;
 import javafx.util.StringConverter;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.StringUtils;
+
+import static javafx.scene.layout.Region.USE_PREF_SIZE;
 
 @UtilityClass
 public class UIUtil {
@@ -49,5 +52,18 @@ public class UIUtil {
                 return codec.parse(string);
             }
         });
+    }
+
+    public static Button buildButton(String text) {
+        Button button = new Button(text);
+        button.setMnemonicParsing(false);
+        button.setMinWidth(USE_PREF_SIZE);
+        button.setMaxWidth(USE_PREF_SIZE);
+        button.setPrefWidth(30);
+
+        button.setMinHeight(USE_PREF_SIZE);
+        button.setMaxHeight(USE_PREF_SIZE);
+        button.setPrefHeight(25);
+        return button;
     }
 }

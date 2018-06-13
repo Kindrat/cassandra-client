@@ -7,6 +7,7 @@ import com.github.kindrat.cassandra.client.filter.Operator;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.ui.editor.filter.*;
 import com.github.kindrat.cassandra.client.util.UIUtil;
+import com.google.common.collect.Sets;
 import com.sun.javafx.tk.FontLoader;
 import com.sun.javafx.tk.Toolkit;
 import javafx.geometry.Side;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
 import static com.github.kindrat.cassandra.client.util.StringUtil.lastWord;
 import static java.util.Arrays.stream;
+import static java.util.Collections.singleton;
 import static org.apache.commons.lang3.StringUtils.startsWithIgnoreCase;
 
 @Slf4j
@@ -119,7 +121,7 @@ public class FilterTextField extends TextField {
     }
 
     private void suggestColumnNames() {
-        rebuildContextMenu(columnsByName.keySet(), false);
+        rebuildContextMenu(Sets.union(columnsByName.keySet(), singleton("#")), false);
     }
 
     private void reset() {

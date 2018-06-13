@@ -1,15 +1,11 @@
 package com.github.kindrat.cassandra.client.service;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ColumnMetadata;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.*;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Update;
 import com.github.kindrat.cassandra.client.exception.UrlSyntaxException;
 import com.github.kindrat.cassandra.client.ui.ConnectionData;
 import com.github.kindrat.cassandra.client.ui.DataObject;
-import com.github.nginate.commons.lang.NStrings;
 import javafx.scene.control.TableColumn;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.data.cassandra.config.CassandraSessionFactoryBean;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
+import org.springframework.data.cassandra.core.cql.SessionCallback;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
@@ -25,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import static com.github.nginate.commons.lang.NStrings.format;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.util.ReflectionUtils.findField;
@@ -80,12 +78,16 @@ public class CassandraClientAdapter {
         });
     }
 
-    public long count(String table) {
-        return template.get().count(table);
+    public CompletableFuture<ResultSet> getAll(String table) {
+        return CompletableFuture.supplyAsync(() -> template.get().getCqlOperations()
+                .queryForResultSet(format("select * from {}", table)));
     }
 
-    public CompletableFuture<ResultSet> getAll(String table) {
-        return CompletableFuture.supplyAsync(() -> template.get().query(NStrings.format("select * from {}", table)));
+    public CompletableFuture<ResultSet> executeStatement(Statement statement) {
+        return CompletableFuture.supplyAsync(() -> {
+            SessionCallback<ResultSet> callback = session -> session.execute(statement);
+            return template.get().getCqlOperations().execute(callback);
+        });
     }
 
     public CompletableFuture<Void> update(TableMetadata metadata, TableColumn.CellEditEvent<DataObject, Object> event) {
@@ -113,13 +115,13 @@ public class CassandraClientAdapter {
 
             log.info("Executing update : {}", update);
 
-            template.get().execute(update);
+            template.get().getCqlOperations().execute(update);
             event.getRowValue().set(updatedColumn, event.getNewValue());
             return null;
         });
     }
 
     public CompletableFuture<ResultSet> execute(String cql) {
-        return CompletableFuture.supplyAsync(() -> template.get().query(cql));
+        return CompletableFuture.supplyAsync(() -> template.get().getCqlOperations().queryForResultSet(cql));
     }
 }

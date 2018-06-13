@@ -1,3 +1,7 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+import org.apache.tools.ant.taskdefs.condition.Os
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -5,7 +9,7 @@ import static org.gradle.api.tasks.wrapper.Wrapper.DistributionType.*
 
 buildscript {
     ext {
-        springBootVersion = '1.5.4.RELEASE'
+        springBootVersion = '2.0.1.RELEASE'
     }
 
     repositories {
@@ -22,15 +26,19 @@ plugins {
     id "com.zoltu.git-versioning" version "3.0.3"
     id 'pl.allegro.tech.build.axion-release' version '1.5.0'
     id 'nebula.optional-base' version '3.1.0'
+    id "de.undercouch.download" version "3.4.2"
+    id "com.avast.gradle.docker-compose" version "0.7.1"
+    id "com.markklim.plugins.mfc" version "0.1.23"
 }
 
 apply plugin: 'base'
 apply plugin: 'java'
 apply plugin: 'org.springframework.boot'
+apply plugin: "io.spring.dependency-management"
 
 ZoltuGitVersioning {
     customDescribeProcessor { describeResults ->
-        def matcher = (describeResults =~ /[0-9A-Za-z\.\-]*([0-9]+?)\.([0-9]+?)\.([0-9]+?)(?:\-([0-9A-Za-z\.\-]+))?\-([0-9]+?)\-g([a-zA-Z0-9]+)/)
+        def matcher = (describeResults =~ /[0-9A-Za-z.\-]*([0-9]+?)\.([0-9]+?)\.([0-9]+?)(?:-([0-9A-Za-z.\-]+))?-([0-9]+?)-g([a-zA-Z0-9]+)/)
         matcher.matches()
         [
                 major      : matcher.group(1),
@@ -53,6 +61,17 @@ ext {
             commitHash : versionInfo.sha,
             buildDate  : currentDate
     ]
+
+    isOsLinux = System.getProperty('os.name').toLowerCase().contains('linux')
+
+    dockerComposeCacheDir = "$rootDir/.gradle/docker-compose"
+    dockerComposeScript = "$dockerComposeCacheDir/$dockerComposeVersion/docker-compose.sh"
+    dockerComposeCommand = isOsLinux && project.hasProperty('dockerComposeVersion') ?
+            dockerComposeScript : 'docker-compose'
+
+    composeProperties = [
+            'version'              : project.version,
+    ]
 }
 
 repositories {
@@ -61,17 +80,19 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.boot:spring-boot-starter-parent:$springBootVersion"
+        mavenBom("org.springframework.boot:spring-boot-dependencies:$springBootVersion") {
+            bomProperty 'reactor-bom.version', 'Bismuth-SR8'
+        }
     }
     dependencies {
         dependency("org.apache.commons:commons-lang3:3.5")
-        dependency("com.google.guava:guava:19.0")
-
         dependency("io.projectreactor:reactor-core:3.0.7.RELEASE")
         dependency("io.projectreactor.addons:reactor-test:3.0.6.RELEASE")
 
         // overrides
         dependency("org.assertj:assertj-core:3.6.1")
+        // cassandra driver depends on old guava futures
+        dependency("com.google.guava:guava:19.0")
     }
 }
 
@@ -90,6 +111,12 @@ dependencies {
     compile("org.springframework.data:spring-data-cassandra")
 
     runtime("org.codehaus.janino:janino")
+
+    testCompile("org.springframework.boot:spring-boot-starter-data-cassandra")
+    testCompile("org.springframework.boot:spring-boot-starter-test")
+    testCompile("org.testng:testng:6.14.3")
+    // optional
+    testCompileOnly("org.springframework.boot:spring-boot-configuration-processor")
 }
 
 scmVersion {
@@ -97,16 +124,97 @@ scmVersion {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '4.1'
+    gradleVersion = '4.7'
     distributionType = ALL
 }
 
 bootRun {
-    addResources = true
+    systemProperties System.properties
 }
 
-bootRepackage {
+jar {
     enabled = true
-    executable = true
-    mainClass = 'com.github.kindrat.cassandra.client.CassandraClientGUI'
+}
+
+bootJar {
+    mainClassName = 'com.github.kindrat.cassandra.client.CassandraClientGUI'
+    // this is here to enable incremental build
+    classifier = 'exec'
+}
+
+task downloadDockerCompose(type: Download) {
+    def composeVersion = project.findProperty('dockerComposeVersion')
+    def composeSrc = "https://github.com/docker/compose/releases/download/$composeVersion/docker-compose-linux-x86_64"
+
+    inputs.property('composeVersion', composeVersion)
+
+    overwrite false
+    src composeSrc
+    dest dockerComposeScript
+
+    onlyIf { isOsLinux && composeVersion != null }
+
+    doFirst { delete(dockerComposeCacheDir) }
+    doLast { file(dockerComposeScript).executable = true }
+}
+
+task prepareDockerFiles(type: Sync, group: 'docker') {
+    inputs.properties composeProperties
+    from("docker-compose") {
+        filter(ReplaceTokens, tokens: composeProperties)
+    }
+    into "$buildDir/docker-compose"
+}
+
+dockerCompose.env {
+    projectName = dockerComposeProject
+    dockerComposeWorkingDirectory = "$buildDir/docker-compose"
+    useComposeFiles = ['docker-compose.yml']
+    executable = dockerComposeCommand
+    removeVolumes = true
+    waitForTcpPorts = true
+}
+
+envComposePull {
+    group = 'docker'
+    dependsOn ":downloadDockerCompose", prepareDockerFiles
+}
+
+envComposeDown {
+    group = 'docker'
+    dependsOn ":downloadDockerCompose", prepareDockerFiles
+}
+
+envComposeUp {
+    group = 'docker'
+    dependsOn ":downloadDockerCompose", prepareDockerFiles
+}
+
+migrator {
+    host = "127.0.0.1"
+    port = 9042
+    keyspace = "test"
+    script = "${rootDir}/init_cassandra.cql"
+}
+
+gradle.projectsEvaluated {
+    tasks.withType(JavaCompile) {
+        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    }
+}
+
+tasks.withType(Test) {
+    testLogging {
+        exceptionFormat = TestExceptionFormat.FULL
+        stackTraceFilters = []
+        showStandardStreams = true
+    }
+    systemProperties System.properties
+    systemProperty 'user.dir', workingDir
+    systemProperty 'functional.logDir', "${project.buildDir}/test-reports/container-logs"
+    //Mac OS default TMPDIR env variable points to folder which is not mounted to Docker VM,
+    //this fixes mounting temporary files/folders to containers
+    if (Os.isFamily(Os.FAMILY_MAC)) {
+        systemProperty 'java.io.tmpdir', "/tmp"
+    }
 }

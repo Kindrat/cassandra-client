@@ -12,6 +12,8 @@ import org.springframework.boot.autoconfigure.cassandra.CassandraAutoConfigurati
 import org.springframework.boot.autoconfigure.data.cassandra.CassandraDataAutoConfiguration;
 import org.springframework.context.annotation.Lazy;
 
+import javax.swing.*;
+
 @Lazy
 @SpringBootApplication(exclude = {CassandraAutoConfiguration.class, CassandraDataAutoConfiguration.class})
 public class CassandraClientGUI extends AbstractJavaFxApplicationSupport {

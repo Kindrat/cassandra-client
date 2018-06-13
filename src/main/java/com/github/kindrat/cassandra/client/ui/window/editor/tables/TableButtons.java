@@ -6,6 +6,7 @@ import javafx.geometry.VPos;
 import javafx.scene.control.Button;
 import javafx.scene.layout.*;
 
+import static com.github.kindrat.cassandra.client.util.UIUtil.buildButton;
 import static com.github.kindrat.cassandra.client.util.UIUtil.disable;
 import static com.github.kindrat.cassandra.client.util.UIUtil.enable;
 
@@ -60,18 +61,5 @@ class TableButtons extends AnchorPane {
 
         gridPane.getRowConstraints().add(new RowConstraints(30, 30, 30, Priority.SOMETIMES, VPos.CENTER, true));
         return gridPane;
-    }
-
-    private Button buildButton(String text) {
-        Button button = new Button(text);
-        button.setMnemonicParsing(false);
-        button.setMinWidth(USE_PREF_SIZE);
-        button.setMaxWidth(USE_PREF_SIZE);
-        button.setPrefWidth(30);
-
-        button.setMinHeight(USE_PREF_SIZE);
-        button.setMaxHeight(USE_PREF_SIZE);
-        button.setPrefHeight(25);
-        return button;
     }
 }

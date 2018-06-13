@@ -116,7 +116,7 @@
                                                                                 fx:constant="CONSTRAINED_RESIZE_POLICY"/>
                                                                     </columnResizePolicy>
                                                                 </TableView>
-                                                                <GridPane disable="true" GridPane.rowIndex="2">
+                                                                <!--<GridPane fx:id="pagePane" disable="true" GridPane.rowIndex="2">
                                                                     <columnConstraints>
                                                                         <ColumnConstraints halignment="CENTER"
                                                                                            hgrow="SOMETIMES"
@@ -138,7 +138,7 @@
                                                                         <Button fx:id="nextBtn" mnemonicParsing="false"
                                                                                 text="→" GridPane.columnIndex="1"/>
                                                                     </children>
-                                                                </GridPane>
+                                                                </GridPane>-->
                                                             </children>
                                                         </GridPane>
                                                         <TextArea fx:id="ddlTextArea" editable="false"

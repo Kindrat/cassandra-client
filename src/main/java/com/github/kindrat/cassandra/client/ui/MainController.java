@@ -1,20 +1,19 @@
 package com.github.kindrat.cassandra.client.ui;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.AbstractTableMetadata;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.TableMetadata;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
+import com.github.kindrat.cassandra.client.service.TableContext;
 import com.github.kindrat.cassandra.client.ui.editor.EventLogger;
 import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
+import com.github.kindrat.cassandra.client.ui.editor.PaginationPanel;
 import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
 import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
-import com.sun.javafx.tk.FontLoader;
-import com.sun.javafx.tk.Toolkit;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -31,10 +30,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 
 import javax.annotation.PostConstruct;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import static com.github.kindrat.cassandra.client.service.TableContext.customView;
+import static com.github.kindrat.cassandra.client.service.TableContext.fullTable;
 import static com.github.kindrat.cassandra.client.util.CqlUtil.*;
 import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
 import static com.github.kindrat.cassandra.client.util.UIUtil.*;
@@ -44,6 +43,7 @@ import static javafx.collections.FXCollections.observableArrayList;
 @Slf4j
 public class MainController {
 
+    private final int pageSize = 1000;
     @Autowired
     private BeanFactory beanFactory;
     @Autowired
@@ -58,6 +58,8 @@ public class MainController {
     private TablePanel tablePanel;
     @Autowired
     private EventLogger eventLogger;
+    @Autowired
+    private PaginationPanel paginationPanel;
 
     private Map<String, TableMetadata> tableMetadata;
 
@@ -84,6 +86,13 @@ public class MainController {
     @FXML
     private AnchorPane eventAnchor;
 
+    @FXML
+    private GridPane pagePane;
+    @FXML
+    private Button prevBtn;
+    @FXML
+    private Button nextBtn;
+
     @PostConstruct
     public void init() {
         Menu fileMenu = (Menu) beanFactory.getBean("fileMenu");
@@ -100,13 +109,17 @@ public class MainController {
         runButton.setOnAction(
                 event -> {
                     String cqlQuery = queryTextField.getText();
-                    clientAdapter.execute(cqlQuery).whenComplete((rows, throwable) -> {
-                        if (throwable != null) {
-                            printError(throwable);
-                        } else if (isSelect(cqlQuery)) {
-                            getSelectTable(cqlQuery).ifPresent(table -> showDataRows(table, rows));
-                        }
-                    });
+                    if (isSelect(cqlQuery)) {
+                        getSelectTable(cqlQuery).ifPresent(table -> {
+                            showDataRows(customView(table, cqlQuery, null, clientAdapter, pageSize));
+                        });
+                    } else {
+                        clientAdapter.execute(cqlQuery).whenComplete((rows, throwable) -> {
+                            if (throwable != null) {
+                                printError(throwable);
+                            }
+                        });
+                    }
                 }
         );
         tablePanel.setNewValueListener(table -> filterTextField.setTableMetadata(tableMetadata.get(table)));
@@ -115,6 +128,7 @@ public class MainController {
         dataTableView.getSelectionModel().setCellSelectionEnabled(true);
         dataTableView.setOnMouseClicked(new TableClickEvent<>(dataTableView));
         eventAnchor.getChildren().add(eventLogger);
+        tableDataGridPane.add(paginationPanel, 0, 2);
         fillParent(eventLogger);
         eventLogger.setVisible(true);
         disable(queryTextField, runButton, tablePanel);
@@ -139,83 +153,42 @@ public class MainController {
 
     public void showDDLForTable(String tableName) {
         tableDataGridPane.setVisible(false);
-        ddlTextArea.setText(formatDDL(metadataFor(tableName).toString()));
+        ddlTextArea.setText(formatDDL(tableMetadata.get(tableName).toString()));
         ddlTextArea.setVisible(true);
     }
 
     public void showDataForTable(String tableName) {
-        long tableSize = clientAdapter.count(tableName);
         eventLogger.fireLogEvent("Loading data for {}", tableName);
-        clientAdapter.getAll(tableName).whenComplete((rows, throwable) -> {
-            if (throwable != null) {
-                printError(throwable);
-            } else {
-                eventLogger.fireLogEvent("Loaded {} entries from {}", tableSize, tableName);
-                showDataRows(tableName, rows);
-            }
-        });
+        showDataRows(fullTable(tableName, tableMetadata.get(tableName), clientAdapter, pageSize));
     }
 
-    private void showDataRows(String tableName, ResultSet resultSet) {
+    private void showDataRows(TableContext context) {
         runLater(() -> {
             ddlTextArea.setVisible(false);
 
             dataTableView.getColumns().clear();
             dataTableView.getItems().clear();
             dataTableView.setEditable(true);
-
-            metadataFor(tableName).getColumns().forEach(columnMetadata -> {
-                DataType type = columnMetadata.getType();
-                TypeCodec<Object> codec = CodecRegistry.DEFAULT_INSTANCE.codecFor(type);
-
-                TableColumn<DataObject, Object> column = new TableColumn<>();
-                Label columnLabel = new Label(columnMetadata.getName());
-                columnLabel.setTooltip(new Tooltip(type.asFunctionParameterString()));
-                column.setCellFactory(cellFactory(codec));
-                column.setCellValueFactory(param -> {
-                    Object object = param.getValue().get(columnMetadata.getName());
-                    return new SimpleObjectProperty<>(object);
-                });
-                column.setOnEditCommit(event -> {
-                    log.debug("Updating row value with {}", event.getRowValue());
-                    clientAdapter.update(metadataFor(tableName), event)
-                            .whenComplete(
-                                    (aVoid, throwable) -> {
-                                        if (throwable != null) {
-                                            log.error(throwable.getMessage(), throwable);
-                                        } else {
-                                            log.debug("Updated : {}", event.getRowValue());
-                                        }
-                                    });
-                });
-                column.setGraphic(columnLabel);
-                FontLoader fontLoader = Toolkit.getToolkit().getFontLoader();
-                float width = fontLoader.computeStringWidth(columnLabel.getText(), columnLabel.getFont());
-                column.setMinWidth(width * 1.3);
-                dataTableView.getColumns().add(column);
-            });
-
-            List<DataObject> objects = resultSet.all().stream().map(row -> {
-                DataObject dataObject = new DataObject();
-                for (ColumnDefinitions.Definition definition : row.getColumnDefinitions()) {
-                    TypeCodec<Object> codec = CodecRegistry.DEFAULT_INSTANCE.codecFor(definition.getType());
-                    dataObject.set(definition.getName(), row.get(definition.getName(), codec));
-                }
-                return dataObject;
-            }).collect(Collectors.toList());
-
-            ObservableList<DataObject> original = FXCollections.observableArrayList(objects);
-            dataTableView.setItems(original);
-            dataTableView.refresh();
-            filterButton.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, original));
-            filterTextField.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, original));
-            tableDataGridPane.setVisible(true);
+            dataTableView.getColumns().addAll(context.getColumns());
+            log.info("Getting page");
+            context.previousPage()
+                    .whenComplete((data, throwable) -> {
+                        if (throwable != null) {
+                            printError(throwable);
+                        } else {
+                            dataTableView.setItems(data);
+                            dataTableView.refresh();
+                            filterButton.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, data));
+                            filterTextField.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, data));
+                            paginationPanel.applyOnTable(context, dataObjects -> {
+                                dataTableView.setItems(dataObjects);
+                                dataTableView.refresh();
+                            });
+                            tableDataGridPane.setVisible(true);
+                        }
+                    })
+                    .thenRun(() -> log.info("Load finished"));
         });
-    }
-
-
-    private TableMetadata metadataFor(String tableName) {
-        return tableMetadata.get(tableName);
     }
 
     public void loadTables(ConnectionData connection) {

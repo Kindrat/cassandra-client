@@ -1,9 +1,11 @@
 package com.github.kindrat.cassandra.client.ui;
 
 import com.github.kindrat.cassandra.client.CassandraClientGUI;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
+@Slf4j
 public abstract class AbstractJavaFxApplicationSupport extends javafx.application.Application {
     private static String[] savedArgs;
 
@@ -17,13 +19,14 @@ public abstract class AbstractJavaFxApplicationSupport extends javafx.applicatio
     @Override
     public void init() throws Exception {
         context = new SpringApplicationBuilder(CassandraClientGUI.class).web(false).run(savedArgs);
-        context.registerShutdownHook();
         context.getAutowireCapableBeanFactory().autowireBean(this);
     }
 
     @Override
     public void stop() throws Exception {
+        log.info("Stop called");
         super.stop();
+        log.info("Stopping context");
         context.close();
     }
 }

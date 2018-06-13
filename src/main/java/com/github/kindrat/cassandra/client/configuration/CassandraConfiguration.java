@@ -12,12 +12,11 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.data.cassandra.config.CassandraEntityClassScanner;
 import org.springframework.data.cassandra.config.CassandraSessionFactoryBean;
 import org.springframework.data.cassandra.config.SchemaAction;
-import org.springframework.data.cassandra.convert.CassandraConverter;
-import org.springframework.data.cassandra.convert.CustomConversions;
-import org.springframework.data.cassandra.convert.MappingCassandraConverter;
-import org.springframework.data.cassandra.mapping.BasicCassandraMappingContext;
-import org.springframework.data.cassandra.mapping.CassandraMappingContext;
-import org.springframework.data.cassandra.mapping.SimpleUserTypeResolver;
+import org.springframework.data.cassandra.core.convert.CassandraConverter;
+import org.springframework.data.cassandra.core.convert.CassandraCustomConversions;
+import org.springframework.data.cassandra.core.convert.MappingCassandraConverter;
+import org.springframework.data.cassandra.core.mapping.CassandraMappingContext;
+import org.springframework.data.cassandra.core.mapping.SimpleUserTypeResolver;
 
 import java.util.Collections;
 
@@ -51,10 +50,10 @@ public class CassandraConfiguration implements BeanClassLoaderAware {
     @Lazy
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
     public CassandraMappingContext cassandraMapping(Cluster cluster, String keyspace) throws ClassNotFoundException {
-        BasicCassandraMappingContext mappingContext = new BasicCassandraMappingContext();
+        CassandraMappingContext mappingContext = new CassandraMappingContext();
         mappingContext.setBeanClassLoader(classLoader);
         mappingContext.setInitialEntitySet(CassandraEntityClassScanner.scan(getEntityBasePackages()));
-        CustomConversions customConversions = customConversions();
+        CassandraCustomConversions customConversions = customConversions();
         mappingContext.setCustomConversions(customConversions);
         mappingContext.setSimpleTypeHolder(customConversions.getSimpleTypeHolder());
         mappingContext.setUserTypeResolver(new SimpleUserTypeResolver(cluster, keyspace));
@@ -62,16 +61,16 @@ public class CassandraConfiguration implements BeanClassLoaderAware {
     }
 
     @Bean
-    public CustomConversions customConversions() {
-        return new CustomConversions(Collections.emptyList());
-    }
-
-    private String[] getEntityBasePackages() {
-        return new String[] { getClass().getPackage().getName() };
+    public CassandraCustomConversions customConversions() {
+        return new CassandraCustomConversions(Collections.emptyList());
     }
 
     @Override
     public void setBeanClassLoader(ClassLoader classLoader) {
         this.classLoader = classLoader;
+    }
+
+    private String[] getEntityBasePackages() {
+        return new String[]{getClass().getPackage().getName()};
     }
 }
