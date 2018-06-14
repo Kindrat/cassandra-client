@@ -1,11 +1,11 @@
-package com.github.kindrat.cassandra.client.ui.editor;
+package com.github.kindrat.cassandra.client.ui.window.editor.main.table.filter;
 
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.TableMetadata;
 import com.github.kindrat.cassandra.client.filter.Combiner;
 import com.github.kindrat.cassandra.client.filter.Operator;
+import com.github.kindrat.cassandra.client.filter.condition.*;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
-import com.github.kindrat.cassandra.client.ui.editor.filter.*;
 import com.github.kindrat.cassandra.client.util.UIUtil;
 import com.google.common.collect.Sets;
 import com.sun.javafx.tk.FontLoader;

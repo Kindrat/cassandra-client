@@ -1,4 +1,4 @@
-package com.github.kindrat.cassandra.client.ui.editor;
+package com.github.kindrat.cassandra.client.ui.window.editor.main.table;
 
 import com.github.kindrat.cassandra.client.service.TableContext;
 import com.github.kindrat.cassandra.client.ui.DataObject;
@@ -9,11 +9,13 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.RowConstraints;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.function.Consumer;
 
 import static com.github.kindrat.cassandra.client.util.UIUtil.*;
 
+@Slf4j
 public class PaginationPanel extends GridPane {
     private final Button buttonPrevious;
     private final Button buttonNext;
@@ -45,6 +47,7 @@ public class PaginationPanel extends GridPane {
 
         buttonPrevious = buildButton("←");
         add(buttonPrevious, 0, 0);
+        disable(buttonPrevious);
 
         buttonNext = buildButton("→");
         add(buttonNext, 1, 0);
@@ -55,13 +58,23 @@ public class PaginationPanel extends GridPane {
             disable(buttonNext, buttonPrevious);
             context.nextPage()
                     .thenAccept(pageConsumer)
-                    .thenRun(() -> enable(buttonNext, buttonPrevious));
+                    .thenRun(() -> {
+                        enable(buttonPrevious);
+                        if (context.hasNextPage()) {
+                            enable(buttonNext);
+                        }
+                    });
         });
         buttonPrevious.setOnAction(actionEvent -> {
             disable(buttonNext, buttonPrevious);
             context.previousPage()
                     .thenAccept(pageConsumer)
-                    .thenRun(() -> enable(buttonNext, buttonPrevious));
+                    .thenRun(() -> {
+                        enable(buttonNext);
+                        if (context.hasPreviousPage()) {
+                            enable(buttonPrevious);
+                        }
+                    });
         });
     }
 }

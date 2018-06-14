@@ -1,4 +1,4 @@
-package com.github.kindrat.cassandra.client.ui.editor.filter;
+package com.github.kindrat.cassandra.client.filter.condition;
 
 import com.github.kindrat.cassandra.client.filter.Operator;
 

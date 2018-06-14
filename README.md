@@ -3,22 +3,20 @@
 This client is intended to be a simple GUI solution to work with cassandra 3.
 
 What it already can:
-* connect to cassandra
-* load and show tables
-* show table DDL
-* show table data (simple editable table view with header)
-* apply composite filters to loaded data
-* execute query
-
-Planned:
-* lazy data load/pagination
-* add/delete tables
-* validation in filter values
-* safe mode with manual commit-reset
-* add/save connections
-* select driver
-* load driver files
-* packaging
+- [x] connect to cassandra
+- [x] load and show tables
+- [x] show table DDL
+- [x] show table data (simple editable table view with header)
+- [x] apply composite filters to loaded data
+- [x] execute query
+- [x] lazy data load/pagination
+- [ ] add/delete tables
+- [ ] validation in filter values
+- [ ] safe mode with manual commit-reset
+- [x] add/save connections
+- [ ] select driver
+- [ ] load driver files
+- [ ] packaging
 
 ## Requirements
 * Install JDK8 ([Oracle](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html), [OpenJDK](http://openjdk.java.net/))

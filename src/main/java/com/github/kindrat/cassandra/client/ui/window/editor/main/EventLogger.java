@@ -1,4 +1,4 @@
-package com.github.kindrat.cassandra.client.ui.editor;
+package com.github.kindrat.cassandra.client.ui.window.editor.main;
 
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;

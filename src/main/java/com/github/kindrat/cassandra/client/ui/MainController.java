@@ -6,9 +6,9 @@ import com.datastax.driver.core.TableMetadata;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
 import com.github.kindrat.cassandra.client.service.TableContext;
-import com.github.kindrat.cassandra.client.ui.editor.EventLogger;
-import com.github.kindrat.cassandra.client.ui.editor.FilterTextField;
-import com.github.kindrat.cassandra.client.ui.editor.PaginationPanel;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.EventLogger;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.table.filter.FilterTextField;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.table.PaginationPanel;
 import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
@@ -31,10 +31,12 @@ import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 
 import javax.annotation.PostConstruct;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.github.kindrat.cassandra.client.service.TableContext.customView;
 import static com.github.kindrat.cassandra.client.service.TableContext.fullTable;
 import static com.github.kindrat.cassandra.client.util.CqlUtil.*;
+import static com.github.kindrat.cassandra.client.util.EvenMoreFutures.handleErrorIfPresent;
 import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
 import static com.github.kindrat.cassandra.client.util.UIUtil.*;
 import static javafx.application.Platform.runLater;
@@ -110,15 +112,11 @@ public class MainController {
                 event -> {
                     String cqlQuery = queryTextField.getText();
                     if (isSelect(cqlQuery)) {
-                        getSelectTable(cqlQuery).ifPresent(table -> {
-                            showDataRows(customView(table, cqlQuery, null, clientAdapter, pageSize));
-                        });
+                        Optional<String> tableOptional = getSelectTable(cqlQuery);
+                        tableOptional.ifPresent(table ->
+                                showDataRows(customView(table, cqlQuery, null, clientAdapter, pageSize)));
                     } else {
-                        clientAdapter.execute(cqlQuery).whenComplete((rows, throwable) -> {
-                            if (throwable != null) {
-                                printError(throwable);
-                            }
-                        });
+                        clientAdapter.execute(cqlQuery).whenComplete(handleErrorIfPresent(this::printError));
                     }
                 }
         );
@@ -170,20 +168,18 @@ public class MainController {
             dataTableView.getItems().clear();
             dataTableView.setEditable(true);
             dataTableView.getColumns().addAll(context.getColumns());
-            log.info("Getting page");
             context.previousPage()
+                    .whenComplete(handleErrorIfPresent(this::printError))
                     .whenComplete((data, throwable) -> {
-                        if (throwable != null) {
-                            printError(throwable);
-                        } else {
+                        if (data != null) {
                             dataTableView.setItems(data);
                             dataTableView.refresh();
                             filterButton.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, data));
                             filterTextField.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, data));
-                            paginationPanel.applyOnTable(context, dataObjects -> {
+                            paginationPanel.applyOnTable(context, dataObjects -> runLater(() -> {
                                 dataTableView.setItems(dataObjects);
                                 dataTableView.refresh();
-                            });
+                            }));
                             tableDataGridPane.setVisible(true);
                         }
                     })
@@ -204,10 +200,9 @@ public class MainController {
                 .thenApply(CassandraAdminTemplate::getKeyspaceMetadata)
                 .thenApply(KeyspaceMetadata::getTables)
                 .thenApply(tables -> toMap(tables, AbstractTableMetadata::getName))
+                .whenComplete(handleErrorIfPresent(this::printError))
                 .whenComplete((metadata, error) -> {
-                    if (error != null) {
-                        printError(error);
-                    } else {
+                    if (metadata != null) {
                         tableMetadata = metadata;
                         showTableNames(connection.getUrl(), connection.getKeyspace());
                     }

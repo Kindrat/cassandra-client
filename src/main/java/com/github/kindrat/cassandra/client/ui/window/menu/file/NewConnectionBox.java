@@ -49,6 +49,7 @@ public class NewConnectionBox extends Stage {
         Scene content = new Scene(connectBox, uiProperties.getNewConnectWidth(), uiProperties.getNewConnectHeight());
         children = connectBox.getChildren();
         urlField = getUrlField(uiProperties.getNewConnectWidth());
+        urlField.setText("localhost:9042");
         children.add(urlField);
         keyspaceField = getKeyspaceField(uiProperties.getNewConnectWidth());
         children.add(keyspaceField);

@@ -2,6 +2,8 @@ package com.github.kindrat.cassandra.client.service;
 
 import com.datastax.driver.core.*;
 import com.github.kindrat.cassandra.client.ui.DataObject;
+import com.github.kindrat.cassandra.client.util.EvenMoreFutures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.sun.javafx.tk.FontLoader;
 import com.sun.javafx.tk.Toolkit;
 import javafx.beans.property.SimpleObjectProperty;
@@ -23,13 +25,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static com.github.kindrat.cassandra.client.util.EvenMoreFutures.toCompletable;
+import static com.github.kindrat.cassandra.client.util.EvenMoreFutures.*;
 import static com.github.kindrat.cassandra.client.util.UIUtil.cellFactory;
+import static com.github.nginate.commons.lang.NStrings.format;
 
 @Slf4j
 public class TableContext {
 
-    private final Map<Integer, PagingState> pagingStates = new HashMap<>();
+    private final Map<Integer, String> pagingStates = new HashMap<>();
     @Getter
     private final String table;
     private final String query;
@@ -43,7 +46,6 @@ public class TableContext {
     private int page;
     private CompletableFuture<ObservableList<DataObject>> currentPage;
     private volatile ResultSet resultSet;
-    private volatile boolean isFinalPage;
 
     private TableContext(String table, String query, TableMetadata tableMetadata, CassandraClientAdapter clientAdapter,
             int pageSize) {
@@ -67,15 +69,24 @@ public class TableContext {
 
     @Synchronized
     public CompletableFuture<ObservableList<DataObject>> nextPage() {
-        if (isFinalPage) {
+        if (!hasNextPage()) {
             return currentPage;
         }
         page++;
-        currentPage = toCompletable(resultSet
-                .fetchMoreResults())
+        currentPage = toCompletable(resultSet.fetchMoreResults())
                 .thenApply(this::parseResultSet)
                 .thenApply(FXCollections::observableList);
         return currentPage;
+    }
+
+    @Synchronized
+    public boolean hasPreviousPage() {
+        return page > 0;
+    }
+
+    @Synchronized
+    public boolean hasNextPage() {
+        return !resultSet.isExhausted();
     }
 
     @Synchronized
@@ -87,39 +98,47 @@ public class TableContext {
 
     @Synchronized
     private CompletableFuture<ObservableList<DataObject>> loadPage(int page) {
+        log.info("Loading page {}", page);
         Statement statement = getStatement();
-        PagingState pagingState = pagingStates.get(page);
-        if (pagingState != null) {
-            log.info("Using request paging {}", pagingState);
+        String rawPagingState = pagingStates.get(page);
+        if (rawPagingState != null) {
+            PagingState pagingState = PagingState.fromString(rawPagingState);
+            log.debug("Loading page {} with pagination state {}", page, rawPagingState);
             statement.setPagingState(pagingState);
         }
         return clientAdapter.executeStatement(statement)
-                .whenComplete((resultSet, throwable) -> {
-                    if (throwable != null) {
-                        log.error("Page {} load failed", page, throwable.getMessage());
-                    } else {
-                        PagingState nextPageState = resultSet.getExecutionInfo().getPagingState();
-                        log.info("Paging response {}", nextPageState);
-                        pagingStates.put(page + 1, nextPageState);
-                        isFinalPage = nextPageState == null;
-                        this.resultSet = resultSet;
-                    }
+                .thenApply(result -> {
+                    ExecutionInfo executionInfo = result.getExecutionInfo();
+                    executionInfo.getWarnings().forEach(log::warn);
+                    printQueryTrace(page, executionInfo.getQueryTraceAsync());
+                    this.resultSet = result;
+                    return result;
                 })
                 .thenApply(this::parseResultSet)
-                .thenApply(FXCollections::observableList);
+                .thenApply(FXCollections::observableList)
+                .whenComplete(logErrorIfPresent(format("Page {} load failed", page)));
     }
 
     private Statement getStatement() {
         Statement statement = new SimpleStatement(query);
         statement.setFetchSize(pageSize);
-        return statement;
+        return statement.enableTracing();
     }
 
     private List<DataObject> parseResultSet(ResultSet resultSet) {
         AtomicInteger start = new AtomicInteger(pageSize * page);
         int availableWithoutFetching = resultSet.getAvailableWithoutFetching();
         int currentPageSize = Math.min(availableWithoutFetching, pageSize);
+        PagingState nextPageState = resultSet.getExecutionInfo().getPagingState();
         log.info("Page {} size {}", page, currentPageSize);
+        if (nextPageState != null) {
+            String value = nextPageState.toString();
+            log.debug("Page {} paging state {}", page + 1, value);
+            pagingStates.put(page + 1, value);
+        } else {
+            log.info("No pagination state for remaining entries. Fetching them within current page.");
+            currentPageSize = availableWithoutFetching;
+        }
         return StreamSupport.stream(resultSet.spliterator(), false)
                 .limit(currentPageSize)
                 .map(row -> parseRow(start.getAndIncrement(), row))
@@ -155,15 +174,7 @@ public class TableContext {
             });
             column.setOnEditCommit(event -> {
                 log.debug("Updating row value with {}", event.getRowValue());
-                clientAdapter.update(tableMetadata, event)
-                        .whenComplete(
-                                (aVoid, throwable) -> {
-                                    if (throwable != null) {
-                                        log.error(throwable.getMessage(), throwable);
-                                    } else {
-                                        log.debug("Updated : {}", event.getRowValue());
-                                    }
-                                });
+                clientAdapter.update(tableMetadata, event).whenComplete(loggingConsumer(aVoid -> event.getRowValue()));
             });
             columns.add(column);
         });
@@ -182,5 +193,26 @@ public class TableContext {
         float width = fontLoader.computeStringWidth(counterColumnLabel.getText(), counterColumnLabel.getFont());
         counterColumn.setMinWidth(width * 1.3);
         return counterColumn;
+    }
+
+    private void printQueryTrace(int page, ListenableFuture<QueryTrace> listenableFuture) {
+        EvenMoreFutures.toCompletable(listenableFuture)
+                .whenCompleteAsync((trace, throwable) -> {
+                    if (trace != null) {
+                        log.info("Executed page {} query trace : [{}] " +
+                                        "\n\t started at {} and took {} μs " +
+                                        "\n\t coordinator {}" +
+                                        "\n\t request type {}" +
+                                        "\n\t parameters {}" +
+                                        "\n\t events",
+                                page, trace.getTraceId(), trace.getStartedAt(), trace.getDurationMicros(),
+                                trace.getCoordinator(), trace.getRequestType(), trace.getParameters(),
+                                trace.getEvents());
+                    }
+                    if (throwable != null) {
+                        log.error("Query trace could not be read", throwable);
+                    }
+                });
+
     }
 }

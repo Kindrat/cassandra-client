@@ -218,3 +218,6 @@ tasks.withType(Test) {
         systemProperty 'java.io.tmpdir', "/tmp"
     }
 }
+
+migratorDropKeyspace.dependsOn envComposeUp
+migratorExecute.dependsOn envComposeUp, migratorDropKeyspace
