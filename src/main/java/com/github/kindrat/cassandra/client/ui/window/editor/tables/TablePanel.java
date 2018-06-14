@@ -27,7 +27,7 @@ public class TablePanel extends AnchorPane {
 
         buttons = new TableButtons();
         tableListView = new TableListView();
-        tableListView.onMouseClick(buttons::enableButtons, buttons::disableButtons);
+        tableListView.onMouseClick(buttons::enableButtons, buttons::disableButtons, this::tryLoadData);
         tableListView.setOnContextMenuRequested(this::onTableContextMenu);
 
         SplitPane splitPane = splitPane(uiProperties);

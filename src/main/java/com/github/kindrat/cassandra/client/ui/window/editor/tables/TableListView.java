@@ -21,8 +21,25 @@ class TableListView extends AnchorPane {
         UIUtil.fillParent(tablesList);
     }
 
-    void onMouseClick(Runnable onSelection, Runnable onDeselection) {
-        tablesList.setOnMouseClicked(event -> onClick(onSelection, onDeselection));
+    void onMouseClick(Runnable onSelection, Runnable onDeselection, Runnable onDoubleClick) {
+        tablesList.setOnMouseClicked(event -> {
+            int clickCount = event.getClickCount();
+            Runnable wrappedSelectionAction = wrapSelectionAction(onSelection, onDoubleClick, clickCount);
+            onClick(wrappedSelectionAction, onDeselection);
+        });
+    }
+
+    private Runnable wrapSelectionAction(Runnable onSelection, Runnable onDoubleClick, int clickCount) {
+        Runnable wrappedSelectionAction;
+        if (clickCount == 2) {
+            wrappedSelectionAction = () -> {
+                onSelection.run();
+                onDoubleClick.run();
+            };
+        } else {
+            wrappedSelectionAction = onSelection;
+        }
+        return wrappedSelectionAction;
     }
 
     Optional<String> getSelectedTable() {
