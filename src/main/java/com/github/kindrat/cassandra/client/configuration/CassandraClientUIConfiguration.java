@@ -6,6 +6,7 @@ import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.View;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.EventLogger;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.TableDataGridPane;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterGrid;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterTextField;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DataTableView;
@@ -62,24 +63,17 @@ public class CassandraClientUIConfiguration {
     }
 
     @Bean
-    public DataTableView dataTableView() {
-        return new DataTableView();
-    }
-
-    @Bean
-    public FilterGrid filterGrid() {
-        return new FilterGrid(dataTableView(), new FilterTextField(localeService));
+    public TableDataGridPane tableDataGridPane() {
+        DataTableView dataTableView = new DataTableView();
+        FilterGrid filterGrid = new FilterGrid(dataTableView, new FilterTextField(localeService));
+        PaginationPanel paginationPanel = new PaginationPanel();
+        return new TableDataGridPane(filterGrid, dataTableView, paginationPanel);
     }
 
     @Bean
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
     public EventLogger eventLogger() {
         return new EventLogger();
-    }
-
-    @Bean
-    public PaginationPanel paginationPanel() {
-        return new PaginationPanel();
     }
 
     @Bean

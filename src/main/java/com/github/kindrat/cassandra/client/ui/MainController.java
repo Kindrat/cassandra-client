@@ -8,10 +8,8 @@ import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
 import com.github.kindrat.cassandra.client.service.TableContext;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.EventLogger;
-import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterGrid;
-import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DataTableView;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.TableDataGridPane;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DdlTextArea;
-import com.github.kindrat.cassandra.client.ui.window.editor.main.table.PaginationPanel;
 import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
 import javafx.collections.ObservableMap;
 import javafx.fxml.FXML;
@@ -19,7 +17,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.GridPane;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,12 +56,6 @@ public class MainController {
     private TablePanel tablePanel;
     @Autowired
     private EventLogger eventLogger;
-    @Autowired
-    private PaginationPanel paginationPanel;
-    @Autowired
-    private FilterGrid filterGrid;
-    @Autowired
-    private DataTableView dataTableView;
 
     private Map<String, TableMetadata> tableMetadata;
     private DdlTextArea ddlTextArea;
@@ -80,17 +71,10 @@ public class MainController {
     @FXML
     private AnchorPane editorAnchor;
 
-    @FXML
-    private GridPane tableDataGridPane;
+    @Autowired
+    private TableDataGridPane tableDataGridPane;
     @FXML
     private AnchorPane eventAnchor;
-
-    @FXML
-    private GridPane pagePane;
-    @FXML
-    private Button prevBtn;
-    @FXML
-    private Button nextBtn;
 
     @PostConstruct
     public void init() {
@@ -117,23 +101,20 @@ public class MainController {
                     }
                 }
         );
-        tablePanel.setNewValueListener(table -> filterGrid.setTableMetadata(tableMetadata.get(table)));
+        tablePanel.setNewValueListener(table -> tableDataGridPane.updateTableMetadata(tableMetadata.get(table)));
 
         ddlTextArea = new DdlTextArea();
         editorAnchor.getChildren().add(ddlTextArea);
+        editorAnchor.getChildren().add(tableDataGridPane);
+
         eventAnchor.getChildren().add(eventLogger);
-
-        tableDataGridPane.add(filterGrid, 0, 0);
-        tableDataGridPane.add(dataTableView, 0, 1);
-        tableDataGridPane.add(paginationPanel, 0, 2);
-
         eventLogger.setVisible(true);
         disable(queryTextField, runButton, tablePanel);
     }
 
     public void onWindowLoad() {
-        getAccelerators().put(new KeyCodeCombination(C, CONTROL_ANY), dataTableView.buildCopyHandler());
-        getAccelerators().put(new KeyCodeCombination(SPACE, CONTROL_ANY), filterGrid::suggestCompletion);
+        getAccelerators().put(new KeyCodeCombination(C, CONTROL_ANY), tableDataGridPane.buildCopyHandler());
+        getAccelerators().put(new KeyCodeCombination(SPACE, CONTROL_ANY), tableDataGridPane::suggestCompletion);
     }
 
     public void showDDLForTable(String tableName) {
@@ -175,20 +156,13 @@ public class MainController {
     private void showDataRows(TableContext context) {
         runLater(() -> {
             ddlTextArea.setVisible(false);
-            dataTableView.setDataColumns(context.getColumns());
+            tableDataGridPane.setDataColumns(context.getColumns());
 
             context.previousPage()
                     .whenComplete(handleErrorIfPresent(this::printError))
                     .whenComplete((data, throwable) -> {
                         if (data != null) {
-                            dataTableView.setItems(data);
-                            dataTableView.refresh();
-                            filterGrid.onDataUpdated(data);
-                            paginationPanel.applyOnTable(context, dataObjects -> runLater(() -> {
-                                dataTableView.setItems(dataObjects);
-                                dataTableView.refresh();
-                            }));
-                            tableDataGridPane.setVisible(true);
+                            tableDataGridPane.setData(context, data);
                         }
                     });
         });
