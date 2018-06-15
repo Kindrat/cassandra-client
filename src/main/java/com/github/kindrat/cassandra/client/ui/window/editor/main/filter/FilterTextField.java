@@ -1,4 +1,4 @@
-package com.github.kindrat.cassandra.client.ui.window.editor.main.table.filter;
+package com.github.kindrat.cassandra.client.ui.window.editor.main.filter;
 
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.TableMetadata;
@@ -10,10 +10,12 @@ import com.github.kindrat.cassandra.client.util.UIUtil;
 import com.google.common.collect.Sets;
 import com.sun.javafx.tk.FontLoader;
 import com.sun.javafx.tk.Toolkit;
+import javafx.geometry.Insets;
 import javafx.geometry.Side;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.GridPane;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -39,6 +41,8 @@ public class FilterTextField extends TextField {
         stateConditions.add(new PartialTableCondition());
         stateConditions.add(new OperatorCondition());
         stateConditions.add(new CombinerCondition());
+
+        GridPane.setMargin(this, new Insets(0, 10, 0, 10));
     }
 
     public void setTableMetadata(TableMetadata metadata) {

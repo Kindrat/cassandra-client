@@ -1,16 +1,16 @@
-package com.github.kindrat.cassandra.client.ui.editor;
+package com.github.kindrat.cassandra.client.ui.window.editor.tables;
 
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import javafx.collections.ObservableList;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 
-public class TableListContext extends ContextMenu {
+class TableListContext extends ContextMenu {
     private final MessageByLocaleService localeService;
     private final Runnable ddlAction;
     private final Runnable dataAction;
 
-    public TableListContext(MessageByLocaleService localeService, Runnable ddlAction, Runnable dataAction) {
+    TableListContext(MessageByLocaleService localeService, Runnable ddlAction, Runnable dataAction) {
         this.localeService = localeService;
         this.ddlAction = ddlAction;
         this.dataAction = dataAction;

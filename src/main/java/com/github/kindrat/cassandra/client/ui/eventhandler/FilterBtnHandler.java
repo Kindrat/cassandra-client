@@ -1,6 +1,5 @@
 package com.github.kindrat.cassandra.client.ui.eventhandler;
 
-import com.datastax.driver.core.Row;
 import com.github.kindrat.cassandra.client.filter.DataFilter;
 import com.github.kindrat.cassandra.client.ui.DataObject;
 import javafx.collections.FXCollections;

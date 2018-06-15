@@ -6,25 +6,21 @@ import com.datastax.driver.core.TableMetadata;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
 import com.github.kindrat.cassandra.client.service.TableContext;
-import com.github.kindrat.cassandra.client.ui.window.editor.main.EventLogger;
-import com.github.kindrat.cassandra.client.ui.window.editor.main.table.filter.FilterTextField;
-import com.github.kindrat.cassandra.client.ui.window.editor.main.table.PaginationPanel;
-import com.github.kindrat.cassandra.client.ui.eventhandler.FilterBtnHandler;
-import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
-import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.EventLogger;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterGrid;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DataTableView;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DdlTextArea;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.table.PaginationPanel;
 import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
 import javafx.collections.ObservableMap;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
@@ -35,12 +31,17 @@ import java.util.Optional;
 
 import static com.github.kindrat.cassandra.client.service.TableContext.customView;
 import static com.github.kindrat.cassandra.client.service.TableContext.fullTable;
-import static com.github.kindrat.cassandra.client.util.CqlUtil.*;
+import static com.github.kindrat.cassandra.client.util.CqlUtil.getSelectTable;
+import static com.github.kindrat.cassandra.client.util.CqlUtil.isSelect;
 import static com.github.kindrat.cassandra.client.util.EvenMoreFutures.handleErrorIfPresent;
 import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
-import static com.github.kindrat.cassandra.client.util.UIUtil.*;
+import static com.github.kindrat.cassandra.client.util.UIUtil.disable;
+import static com.github.kindrat.cassandra.client.util.UIUtil.enable;
 import static javafx.application.Platform.runLater;
 import static javafx.collections.FXCollections.observableArrayList;
+import static javafx.scene.input.KeyCode.C;
+import static javafx.scene.input.KeyCode.SPACE;
+import static javafx.scene.input.KeyCombination.CONTROL_ANY;
 
 @Slf4j
 public class MainController {
@@ -55,15 +56,18 @@ public class MainController {
     @Autowired
     private View view;
     @Autowired
-    private FilterTextField filterTextField;
-    @Autowired
     private TablePanel tablePanel;
     @Autowired
     private EventLogger eventLogger;
     @Autowired
     private PaginationPanel paginationPanel;
+    @Autowired
+    private FilterGrid filterGrid;
+    @Autowired
+    private DataTableView dataTableView;
 
     private Map<String, TableMetadata> tableMetadata;
+    private DdlTextArea ddlTextArea;
 
     @FXML
     private MenuBar menu;
@@ -75,16 +79,9 @@ public class MainController {
     private TextField queryTextField;
     @FXML
     private AnchorPane editorAnchor;
-    @FXML
-    private TextArea ddlTextArea;
+
     @FXML
     private GridPane tableDataGridPane;
-    @FXML
-    private TableView<DataObject> dataTableView;
-    @FXML
-    private GridPane filterGrid;
-    @FXML
-    private Button filterButton;
     @FXML
     private AnchorPane eventAnchor;
 
@@ -120,71 +117,33 @@ public class MainController {
                     }
                 }
         );
-        tablePanel.setNewValueListener(table -> filterTextField.setTableMetadata(tableMetadata.get(table)));
-        dataTableView.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
-        dataTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        dataTableView.getSelectionModel().setCellSelectionEnabled(true);
-        dataTableView.setOnMouseClicked(new TableClickEvent<>(dataTableView));
+        tablePanel.setNewValueListener(table -> filterGrid.setTableMetadata(tableMetadata.get(table)));
+
+        ddlTextArea = new DdlTextArea();
+        editorAnchor.getChildren().add(ddlTextArea);
         eventAnchor.getChildren().add(eventLogger);
+
+        tableDataGridPane.add(filterGrid, 0, 0);
+        tableDataGridPane.add(dataTableView, 0, 1);
         tableDataGridPane.add(paginationPanel, 0, 2);
-        fillParent(eventLogger);
+
         eventLogger.setVisible(true);
         disable(queryTextField, runButton, tablePanel);
     }
 
     public void onWindowLoad() {
-        TableCellCopyHandler copyHandler = new TableCellCopyHandler(dataTableView);
-        getAccelerators().put(new KeyCodeCombination(KeyCode.C, KeyCombination.CONTROL_ANY), copyHandler);
-        getAccelerators().put(new KeyCodeCombination(KeyCode.SPACE, KeyCombination.CONTROL_ANY),
-                () -> {
-                    if (filterTextField.isFocused()) {
-                        filterTextField.suggestCompletion();
-                    }
-                });
-        filterGrid.add(filterTextField, 0, 0);
-        GridPane.setMargin(filterTextField, new Insets(0, 10, 0, 10));
-    }
-
-    private ObservableMap<KeyCombination, Runnable> getAccelerators() {
-        return view.getPrimaryStage().getScene().getAccelerators();
+        getAccelerators().put(new KeyCodeCombination(C, CONTROL_ANY), dataTableView.buildCopyHandler());
+        getAccelerators().put(new KeyCodeCombination(SPACE, CONTROL_ANY), filterGrid::suggestCompletion);
     }
 
     public void showDDLForTable(String tableName) {
         tableDataGridPane.setVisible(false);
-        ddlTextArea.setText(formatDDL(tableMetadata.get(tableName).toString()));
-        ddlTextArea.setVisible(true);
+        ddlTextArea.showTableDDL(tableMetadata.get(tableName));
     }
 
     public void showDataForTable(String tableName) {
         eventLogger.fireLogEvent("Loading data for {}", tableName);
         showDataRows(fullTable(tableName, tableMetadata.get(tableName), clientAdapter, pageSize));
-    }
-
-    private void showDataRows(TableContext context) {
-        runLater(() -> {
-            ddlTextArea.setVisible(false);
-
-            dataTableView.getColumns().clear();
-            dataTableView.getItems().clear();
-            dataTableView.setEditable(true);
-            dataTableView.getColumns().addAll(context.getColumns());
-            context.previousPage()
-                    .whenComplete(handleErrorIfPresent(this::printError))
-                    .whenComplete((data, throwable) -> {
-                        if (data != null) {
-                            dataTableView.setItems(data);
-                            dataTableView.refresh();
-                            filterButton.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, data));
-                            filterTextField.setOnAction(new FilterBtnHandler(filterTextField, dataTableView, data));
-                            paginationPanel.applyOnTable(context, dataObjects -> runLater(() -> {
-                                dataTableView.setItems(dataObjects);
-                                dataTableView.refresh();
-                            }));
-                            tableDataGridPane.setVisible(true);
-                        }
-                    })
-                    .thenRun(() -> log.info("Load finished"));
-        });
     }
 
     public void loadTables(ConnectionData connection) {
@@ -209,6 +168,32 @@ public class MainController {
                 });
     }
 
+    private ObservableMap<KeyCombination, Runnable> getAccelerators() {
+        return view.getPrimaryStage().getScene().getAccelerators();
+    }
+
+    private void showDataRows(TableContext context) {
+        runLater(() -> {
+            ddlTextArea.setVisible(false);
+            dataTableView.setDataColumns(context.getColumns());
+
+            context.previousPage()
+                    .whenComplete(handleErrorIfPresent(this::printError))
+                    .whenComplete((data, throwable) -> {
+                        if (data != null) {
+                            dataTableView.setItems(data);
+                            dataTableView.refresh();
+                            filterGrid.onDataUpdated(data);
+                            paginationPanel.applyOnTable(context, dataObjects -> runLater(() -> {
+                                dataTableView.setItems(dataObjects);
+                                dataTableView.refresh();
+                            }));
+                            tableDataGridPane.setVisible(true);
+                        }
+                    });
+        });
+    }
+
     private void showTableNames(String url, String keyspace) {
         runLater(() -> {
             tablePanel.showTables(observableArrayList(tableMetadata.keySet()).sorted());
@@ -219,11 +204,10 @@ public class MainController {
     }
 
 
-    private void printError(Throwable t) {
+    private void printError(Throwable throwable) {
         runLater(() -> {
             tableDataGridPane.setVisible(false);
-            ddlTextArea.setText(ExceptionUtils.getStackTrace(t));
-            ddlTextArea.setVisible(true);
+            ddlTextArea.showException(throwable);
         });
     }
 }

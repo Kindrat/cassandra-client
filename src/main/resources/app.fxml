@@ -82,71 +82,7 @@
                                                                 <RowConstraints maxHeight="40.0" minHeight="40.0"
                                                                                 prefHeight="40.0" vgrow="SOMETIMES"/>
                                                             </rowConstraints>
-                                                            <children>
-                                                                <GridPane fx:id="filterGrid">
-                                                                    <columnConstraints>
-                                                                        <ColumnConstraints halignment="CENTER"
-                                                                                           hgrow="SOMETIMES"
-                                                                                           minWidth="10.0"
-                                                                                           prefWidth="100.0"/>
-                                                                        <ColumnConstraints halignment="CENTER"
-                                                                                           hgrow="SOMETIMES"
-                                                                                           maxWidth="100.0"
-                                                                                           minWidth="100.0"
-                                                                                           prefWidth="100.0"/>
-                                                                    </columnConstraints>
-                                                                    <rowConstraints>
-                                                                        <RowConstraints minHeight="10.0"
-                                                                                        prefHeight="30.0"
-                                                                                        vgrow="SOMETIMES"/>
-                                                                    </rowConstraints>
-                                                                    <children>
-                                                                        <Button fx:id="filterButton"
-                                                                                mnemonicParsing="false" text="Filter"
-                                                                                GridPane.columnIndex="1"/>
-                                                                    </children>
-                                                                </GridPane>
-                                                                <TableView fx:id="dataTableView" editable="true"
-                                                                           prefHeight="200.0" prefWidth="200.0"
-                                                                           GridPane.halignment="CENTER"
-                                                                           GridPane.rowIndex="1"
-                                                                           GridPane.valignment="CENTER">
-                                                                    <columnResizePolicy>
-                                                                        <TableView
-                                                                                fx:constant="CONSTRAINED_RESIZE_POLICY"/>
-                                                                    </columnResizePolicy>
-                                                                </TableView>
-                                                                <!--<GridPane fx:id="pagePane" disable="true" GridPane.rowIndex="2">
-                                                                    <columnConstraints>
-                                                                        <ColumnConstraints halignment="CENTER"
-                                                                                           hgrow="SOMETIMES"
-                                                                                           minWidth="10.0"
-                                                                                           prefWidth="100.0"/>
-                                                                        <ColumnConstraints halignment="CENTER"
-                                                                                           hgrow="SOMETIMES"
-                                                                                           minWidth="10.0"
-                                                                                           prefWidth="100.0"/>
-                                                                    </columnConstraints>
-                                                                    <rowConstraints>
-                                                                        <RowConstraints minHeight="10.0"
-                                                                                        prefHeight="30.0"
-                                                                                        vgrow="SOMETIMES"/>
-                                                                    </rowConstraints>
-                                                                    <children>
-                                                                        <Button fx:id="prevBtn" mnemonicParsing="false"
-                                                                                text="←"/>
-                                                                        <Button fx:id="nextBtn" mnemonicParsing="false"
-                                                                                text="→" GridPane.columnIndex="1"/>
-                                                                    </children>
-                                                                </GridPane>-->
-                                                            </children>
                                                         </GridPane>
-                                                        <TextArea fx:id="ddlTextArea" editable="false"
-                                                                  prefHeight="200.0" prefWidth="200.0" visible="false"
-                                                                  AnchorPane.bottomAnchor="0.0"
-                                                                  AnchorPane.leftAnchor="0.0"
-                                                                  AnchorPane.rightAnchor="0.0"
-                                                                  AnchorPane.topAnchor="0.0"/>
                                                     </children>
                                                 </AnchorPane>
                                                 <AnchorPane fx:id="eventAnchor" maxHeight="40.0" minHeight="40.0"

@@ -3,7 +3,6 @@ package com.github.kindrat.cassandra.client.ui.window.editor.tables;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.MainController;
-import com.github.kindrat.cassandra.client.ui.editor.TableListContext;
 import com.github.kindrat.cassandra.client.util.UIUtil;
 import javafx.collections.ObservableList;
 import javafx.geometry.Orientation;

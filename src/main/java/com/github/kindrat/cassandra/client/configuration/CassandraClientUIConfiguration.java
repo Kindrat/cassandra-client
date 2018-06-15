@@ -6,11 +6,13 @@ import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.View;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.EventLogger;
-import com.github.kindrat.cassandra.client.ui.window.editor.main.table.filter.FilterTextField;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterGrid;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterTextField;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DataTableView;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.PaginationPanel;
 import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
-import com.github.kindrat.cassandra.client.ui.window.menu.about.AboutBox;
 import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
+import com.github.kindrat.cassandra.client.ui.window.menu.about.AboutBox;
 import com.github.kindrat.cassandra.client.ui.window.menu.file.ConnectionManager;
 import com.github.kindrat.cassandra.client.ui.window.menu.file.NewConnectionBox;
 import javafx.fxml.FXMLLoader;
@@ -60,9 +62,13 @@ public class CassandraClientUIConfiguration {
     }
 
     @Bean
-    @Scope(BeanDefinition.SCOPE_PROTOTYPE)
-    public FilterTextField filterTextField() {
-        return new FilterTextField(localeService);
+    public DataTableView dataTableView() {
+        return new DataTableView();
+    }
+
+    @Bean
+    public FilterGrid filterGrid() {
+        return new FilterGrid(dataTableView(), new FilterTextField(localeService));
     }
 
     @Bean

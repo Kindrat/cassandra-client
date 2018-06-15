@@ -99,7 +99,7 @@ public class CassandraClientAdapter {
                     .map(ColumnMetadata::getName)
                     .collect(toSet());
 
-            int column = event.getTablePosition().getColumn();
+            int column = event.getTablePosition().getColumn() - 1;
             String updatedColumn = metadata.getColumns().get(column).getName();
 
             if (keyNames.contains(updatedColumn)) {
