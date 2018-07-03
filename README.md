@@ -2,6 +2,8 @@
 
 This client is intended to be a simple GUI solution to work with cassandra 3.
 
+[![CodeFactor](https://www.codefactor.io/repository/github/kindrat/cassandra-client/badge)](https://www.codefactor.io/repository/github/kindrat/cassandra-client)
+
 What it already can:
 - [x] connect to cassandra
 - [x] load and show tables
