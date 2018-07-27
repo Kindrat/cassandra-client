@@ -64,7 +64,7 @@ public class DataSetupIT extends AbstractTestNGSpringContextTests {
         @Override
         public Cluster.Builder configure(Cluster.Builder clusterBuilder) {
             return clusterBuilder.withClusterName("default")
-                    .withPort(9042);
+                    .withPort(19042);
         }
     }
 }

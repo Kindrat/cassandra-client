@@ -2,6 +2,7 @@ package com.github.kindrat.cassandra.client.ui;
 
 import com.github.kindrat.cassandra.client.CassandraClientGUI;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -18,7 +19,7 @@ public abstract class AbstractJavaFxApplicationSupport extends javafx.applicatio
 
     @Override
     public void init() throws Exception {
-        context = new SpringApplicationBuilder(CassandraClientGUI.class).web(false).run(savedArgs);
+        context = new SpringApplicationBuilder(CassandraClientGUI.class).web(WebApplicationType.NONE).run(savedArgs);
         context.getAutowireCapableBeanFactory().autowireBean(this);
     }
 

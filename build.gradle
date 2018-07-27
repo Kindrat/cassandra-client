@@ -220,4 +220,4 @@ tasks.withType(Test) {
 }
 
 migratorDropKeyspace.dependsOn envComposeUp
-migratorExecute.dependsOn envComposeUp, migratorDropKeyspace
+migratorExecute.dependsOn envComposeUp

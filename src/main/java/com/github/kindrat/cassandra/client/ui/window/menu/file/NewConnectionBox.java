@@ -5,6 +5,9 @@ import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.ConnectionData;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
 import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
+import com.github.kindrat.cassandra.client.ui.window.menu.KeySpaceProvider;
+import com.github.kindrat.cassandra.client.util.UIUtil;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
@@ -13,32 +16,42 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import static com.github.kindrat.cassandra.client.util.UIUtil.disable;
+import static com.github.kindrat.cassandra.client.util.UIUtil.enable;
+import static javafx.application.Platform.runLater;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 @Slf4j
 public class NewConnectionBox extends Stage {
+    private final ObservableList<String> keyspaces = FXCollections.observableArrayList();
     private final MessageByLocaleService localeService;
     private final UIProperties uiProperties;
     private final ConnectionDataHandler valueHandler;
+    private final KeySpaceProvider keyspaceProvider;
     private final TextField urlField;
-    private final TextField keyspaceField;
+    private final ComboBox<String> keyspaceField;
+    private final Button keyspaceLoaderRefreshBtn;
     private final AuthCredentialsBox credentials;
     private final CheckBox authTriggerBox;
     private final ObservableList<Node> children;
+    private final Button submitButton;
 
     public NewConnectionBox(Stage parent, MessageByLocaleService localeService, UIProperties uiProperties,
-            ConnectionDataHandler valueHandler) {
+            ConnectionDataHandler valueHandler, KeySpaceProvider keyspaceProvider) {
         this.localeService = localeService;
         this.uiProperties = uiProperties;
         this.valueHandler = valueHandler;
+        this.keyspaceProvider = keyspaceProvider;
 
         initModality(Modality.APPLICATION_MODAL);
         initOwner(parent);
@@ -51,8 +64,14 @@ public class NewConnectionBox extends Stage {
         urlField = getUrlField(uiProperties.getNewConnectWidth());
         urlField.setText("localhost:9042");
         children.add(urlField);
+
         keyspaceField = getKeyspaceField(uiProperties.getNewConnectWidth());
-        children.add(keyspaceField);
+        keyspaceLoaderRefreshBtn = new Button("↺");
+        keyspaceLoaderRefreshBtn.setOnAction(actionEvent -> loadKeyspaces());
+        HBox keyspaceBox = new HBox(keyspaceField, keyspaceLoaderRefreshBtn);
+        keyspaceBox.setAlignment(Pos.CENTER);
+
+        children.add(keyspaceBox);
         authTriggerBox = getAuthTriggerBox();
         children.add(authTriggerBox);
 
@@ -60,12 +79,25 @@ public class NewConnectionBox extends Stage {
         credentials.setMinWidth(uiProperties.getNewConnectWidth() - 10);
         credentials.setMaxWidth(uiProperties.getNewConnectWidth() - 10);
 
-        Button submitButton = buildButton();
+        submitButton = buildButton();
         children.add(submitButton);
-
+        UIUtil.disable(submitButton);
         urlField.textProperty().addListener(TextFieldButtonWatcher.wrap(submitButton));
-        keyspaceField.textProperty().addListener(TextFieldButtonWatcher.wrap(submitButton));
+        urlField.textProperty().addListener((observableValue, oldValue, newValue) -> {
+            if (!StringUtils.equals(oldValue, newValue) && !StringUtils.isBlank(newValue)) {
+                loadKeyspaces();
+            }
+        });
+        keyspaceField.setOnAction(actionEvent -> {
+            if (keyspaceField.getSelectionModel().getSelectedIndex() != -1) {
+                enable(submitButton);
+            } else {
+                disable(submitButton);
+            }
 
+        });
+
+        setWidth(300);
         urlField.requestFocus();
         setScene(content);
         show();
@@ -73,13 +105,14 @@ public class NewConnectionBox extends Stage {
 
     public void update(ConnectionData data) {
         urlField.setText(data.getUrl());
-        keyspaceField.setText(data.getKeyspace());
+        keyspaces.add(data.getKeyspace());
         if (isNotBlank(data.getUsername()) || isNotBlank(data.getPassword())) {
             authTriggerBox.setSelected(true);
             onAuthTrigger(null);
             credentials.setUsername(data.getUsername());
             credentials.setPassword(data.getPassword());
         }
+        enable(submitButton);
     }
 
     private Button buildButton() {
@@ -94,12 +127,11 @@ public class NewConnectionBox extends Stage {
         return submit;
     }
 
-    private TextField getKeyspaceField(int width) {
-        TextField keyspace = new TextField();
-        keyspace.setPromptText(localeService.getMessage("ui.menu.file.connect.keyspace.text"));
-        keyspace.setAlignment(Pos.TOP_CENTER);
-        keyspace.setMinWidth(width - 10);
-        keyspace.setMaxWidth(width - 10);
+    private ComboBox<String> getKeyspaceField(int width) {
+        ComboBox<String> keyspace = new ComboBox<>(keyspaces);
+        keyspace.setPromptText(localeService.getMessage("ui.menu.file.connect.keyspace.load_text"));
+        keyspace.setMinWidth(width - 20);
+        keyspace.setMaxWidth(width - 20);
         keyspace.setOnAction(this::handleClick);
         return keyspace;
     }
@@ -123,7 +155,7 @@ public class NewConnectionBox extends Stage {
     @SuppressWarnings("unused")
     private void handleClick(Event event) {
         String url = urlField.getText();
-        String keyspace = keyspaceField.getText();
+        String keyspace = keyspaceField.getSelectionModel().getSelectedItem();
 
         if (StringUtils.isNoneBlank(url, keyspace)) {
             valueHandler.onConnectionData(new ConnectionData(url, keyspace,
@@ -144,5 +176,23 @@ public class NewConnectionBox extends Stage {
             children.remove(2);
             setHeight(getHeight() - uiProperties.getCredentialsBoxHeight());
         }
+    }
+
+    private void loadKeyspaces() {
+        keyspaces.clear();
+        runLater(() -> keyspaceField.setPromptText(localeService.getMessage("ui.menu.file.connect.keyspace.text")));
+        keyspaceProvider.loadKeyspaces(urlField.getText(), credentials.getUsername(), credentials.getPassword())
+                .whenComplete((strings, throwable) -> {
+                    if (throwable != null) {
+                        log.error("Could not load keyspaces : {}", throwable.getMessage());
+                        runLater(() -> {
+                            String message = localeService.getMessage("ui.menu.file.connect.keyspace.error_text");
+                            keyspaceField.setPromptText(message);
+                        });
+                    } else {
+                        log.debug("Keyspaces loaded for {}", urlField.getText());
+                        keyspaces.addAll(strings);
+                    }
+                });
     }
 }

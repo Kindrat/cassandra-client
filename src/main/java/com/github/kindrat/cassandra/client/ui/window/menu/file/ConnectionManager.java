@@ -8,6 +8,7 @@ import com.github.kindrat.cassandra.client.ui.ConnectionData;
 import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
 import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
+import com.github.kindrat.cassandra.client.ui.window.menu.KeySpaceProvider;
 import com.google.common.io.Files;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -37,6 +38,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Slf4j
 public class ConnectionManager extends Stage implements BeanFactoryAware {
     private final MessageByLocaleService localeService;
+    private final KeySpaceProvider keySpaceProvider;
     private final UIProperties uiProperties;
     private final StorageProperties storageProperties;
     private final TableView<ConnectionData> table;
@@ -44,9 +46,10 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     private final File configurationsFile;
 
     @SneakyThrows
-    public ConnectionManager(Stage parent, MessageByLocaleService localeService, UIProperties uiProperties,
+    public ConnectionManager(Stage parent, MessageByLocaleService localeService, KeySpaceProvider keySpaceProvider, UIProperties uiProperties,
             StorageProperties storageProperties) {
         this.localeService = localeService;
+        this.keySpaceProvider = keySpaceProvider;
         this.uiProperties = uiProperties;
         this.storageProperties = storageProperties;
 
@@ -164,7 +167,8 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     }
 
     private void onNewConnection() {
-        beanFactory.getBean("newConnectionBox", this, (ConnectionDataHandler) this::onConnectionData);
+        beanFactory.getBean("newConnectionBox", this, (ConnectionDataHandler) this::onConnectionData,
+                keySpaceProvider);
     }
 
     private void onConnectionData(ConnectionData data) {

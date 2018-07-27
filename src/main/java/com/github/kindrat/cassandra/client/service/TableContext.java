@@ -98,7 +98,7 @@ public class TableContext {
 
     @Synchronized
     private CompletableFuture<ObservableList<DataObject>> loadPage(int page) {
-        log.info("Loading page {}", page);
+        log.debug("Loading page {}", page);
         Statement statement = getStatement();
         String rawPagingState = pagingStates.get(page);
         if (rawPagingState != null) {
@@ -130,7 +130,7 @@ public class TableContext {
         int availableWithoutFetching = resultSet.getAvailableWithoutFetching();
         int currentPageSize = Math.min(availableWithoutFetching, pageSize);
         PagingState nextPageState = resultSet.getExecutionInfo().getPagingState();
-        log.info("Page {} size {}", page, currentPageSize);
+        log.debug("Page {} size {}", page, currentPageSize);
         if (nextPageState != null) {
             String value = nextPageState.toString();
             log.debug("Page {} paging state {}", page + 1, value);
@@ -162,6 +162,7 @@ public class TableContext {
             Integer object = param.getValue().getPosition();
             return new SimpleObjectProperty<>(object);
         });
+        counterColumn.setEditable(false);
 
         columns.add(counterColumn);
 

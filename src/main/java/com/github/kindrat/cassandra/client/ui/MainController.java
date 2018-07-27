@@ -123,7 +123,7 @@ public class MainController {
     }
 
     public void showDataForTable(String tableName) {
-        eventLogger.fireLogEvent("Loading data for {}", tableName);
+        eventLogger.fireLogEvent("Loading data for table '{}'", tableName);
         showDataRows(fullTable(tableName, tableMetadata.get(tableName), clientAdapter, pageSize));
     }
 

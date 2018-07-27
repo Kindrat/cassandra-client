@@ -3,6 +3,7 @@ package com.github.kindrat.cassandra.client.configuration;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.StorageProperties;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
+import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
 import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.View;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.EventLogger;
@@ -13,6 +14,7 @@ import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DataTable
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.PaginationPanel;
 import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
 import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
+import com.github.kindrat.cassandra.client.ui.window.menu.KeySpaceProvider;
 import com.github.kindrat.cassandra.client.ui.window.menu.about.AboutBox;
 import com.github.kindrat.cassandra.client.ui.window.menu.file.ConnectionManager;
 import com.github.kindrat.cassandra.client.ui.window.menu.file.NewConnectionBox;
@@ -58,8 +60,8 @@ public class CassandraClientUIConfiguration {
 
     @Bean
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
-    public Stage newConnectionBox(Stage parent, ConnectionDataHandler valueHandler) {
-        return new NewConnectionBox(parent, localeService, uiProperties, valueHandler);
+    public Stage newConnectionBox(Stage parent, ConnectionDataHandler valueHandler, KeySpaceProvider keyspaceProvider) {
+        return new NewConnectionBox(parent, localeService, uiProperties, valueHandler, keyspaceProvider);
     }
 
     @Bean
@@ -78,18 +80,18 @@ public class CassandraClientUIConfiguration {
 
     @Bean
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
-    public Menu fileMenu() {
+    public Menu fileMenu(CassandraClientAdapter clientAdapter) {
         Menu file = new Menu(localeService.getMessage("ui.menu.file"));
         file.setMnemonicParsing(false);
 
         MenuItem connect = new MenuItem(localeService.getMessage("ui.menu.file.connect"));
         connect.setMnemonicParsing(false);
         connect.setOnAction(event -> newConnectionBox(getMainView().getPrimaryStage(),
-                (data) -> getMainController().loadTables(data)));
+                (data) -> getMainController().loadTables(data), clientAdapter::getAllKeyspaces));
 
         MenuItem manager = new MenuItem(localeService.getMessage("ui.menu.file.manager"));
         manager.setMnemonicParsing(false);
-        manager.setOnAction(event -> connectionManager());
+        manager.setOnAction(event -> connectionManager(clientAdapter::getAllKeyspaces));
         file.getItems().addAll(connect, manager);
         return file;
     }
@@ -110,8 +112,9 @@ public class CassandraClientUIConfiguration {
 
     @Bean
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
-    public ConnectionManager connectionManager() {
-        return new ConnectionManager(getMainView().getPrimaryStage(), localeService, uiProperties, storageProperties);
+    public ConnectionManager connectionManager(KeySpaceProvider keySpaceProvider) {
+        return new ConnectionManager(getMainView().getPrimaryStage(), localeService, keySpaceProvider,
+                uiProperties, storageProperties);
     }
 
     @Bean
@@ -121,16 +124,10 @@ public class CassandraClientUIConfiguration {
 
     @SneakyThrows
     private View loadView() {
-        InputStream fxmlStream = null;
-        try {
-            fxmlStream = getClass().getClassLoader().getResourceAsStream("app.fxml");
+        try (InputStream fxmlStream = getClass().getClassLoader().getResourceAsStream("app.fxml")) {
             FXMLLoader loader = new FXMLLoader();
             loader.load(fxmlStream);
             return new View(loader.getRoot(), loader.getController());
-        } finally {
-            if (fxmlStream != null) {
-                fxmlStream.close();
-            }
         }
     }
 }

@@ -52,14 +52,14 @@ public class FilterTextField extends TextField {
 
     public void suggestCompletion() {
         String[] words = UIUtil.parseWords(getText());
-        log.info("Checking words : {}", Arrays.toString(words));
+        log.debug("Checking words : {}", Arrays.toString(words));
         Optional<StateCondition> state = stateConditions.stream()
                 .filter(stateCondition -> stateCondition.isCurrentState(words, columnsByName.keySet()))
                 .findFirst();
 
         if (state.isPresent()) {
             StateCondition stateCondition = state.get();
-            log.info("Found state {}", stateCondition.name());
+            log.debug("Found state {}", stateCondition.name());
             switch (stateCondition.name()) {
                 case TABLE:
                     suggestColumnNames();
@@ -75,7 +75,7 @@ public class FilterTextField extends TextField {
                     break;
             }
         } else {
-            log.info("Unknown state");
+            log.debug("Unknown state");
         }
     }
 

@@ -1,5 +1,6 @@
 package com.github.kindrat.cassandra.client.ui.window.editor.main.table;
 
+import com.datastax.driver.core.TableMetadata;
 import com.github.kindrat.cassandra.client.ui.DataObject;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
 import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
@@ -24,8 +25,6 @@ public class DataTableView extends TableView<DataObject> {
         TableViewSelectionModel<DataObject> selectionModel = getSelectionModel();
         selectionModel.setSelectionMode(SelectionMode.SINGLE);
         selectionModel.setCellSelectionEnabled(true);
-
-        setOnMouseClicked(new TableClickEvent<>(this));
     }
 
     public void setDataColumns(List<TableColumn<DataObject, Object>> columns) {
@@ -33,6 +32,10 @@ public class DataTableView extends TableView<DataObject> {
         getItems().clear();
         setEditable(true);
         getColumns().addAll(columns);
+    }
+
+    public void onTableSelected(TableMetadata tableMetadata) {
+        setOnMouseClicked(new TableClickEvent<>(this));
     }
 
     public TableCellCopyHandler buildCopyHandler() {

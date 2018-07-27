@@ -66,6 +66,7 @@ public class TableDataGridPane extends GridPane {
     }
 
     public void updateTableMetadata(TableMetadata metadata) {
+        dataTableView.onTableSelected(metadata);
         filterGrid.setTableMetadata(metadata);
     }
 
