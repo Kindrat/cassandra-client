@@ -31,11 +31,11 @@ What it already can:
 2. Go to the directory: cd `cassandra-client`
 3. Build sources using gradle:
 
-    3.1 For Windows `gradlew.bat build`
+    3.1 For Windows `./gradlew.bat build`
     
-    3.2 For Unix `gradlew build`
+    3.2 For Unix `./gradlew build`
     
-4. Run client `java -jar  cassadra-client-1.0.2.jar` or from gradle `gradlew bootRun`
+4. Run client `java -jar  cassadra-client-1.0.2.jar` or from gradle `./gradlew bootRun`
 
 ### Editor window
 On selecting table data from context menu in table list all rows are loaded from cassandra
