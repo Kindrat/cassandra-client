@@ -32,6 +32,7 @@ What it already can:
 3. Build sources using gradle:
 
     3.1 For Windows `gradlew.bat build`
+    
     3.2 For Unix `gradlew build`
     
 4. Run client `java -jar  cassadra-client-1.0.2.jar` or from gradle `gradlew bootRun`
