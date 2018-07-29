@@ -35,7 +35,7 @@ What it already can:
     
     3.2 For Unix `./gradlew build`
     
-4. Run client `java -jar  cassadra-client-1.0.2.jar` or from gradle `./gradlew bootRun`
+4. Run client `java -jar build/libs/cassadra-client-1.0.2.jar` or from gradle `./gradlew bootRun`
 
 ### Editor window
 On selecting table data from context menu in table list all rows are loaded from cassandra
