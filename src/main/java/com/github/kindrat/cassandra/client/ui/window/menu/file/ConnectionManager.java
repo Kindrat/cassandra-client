@@ -25,6 +25,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
@@ -123,8 +124,12 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
         dataTableView.setMaxWidth(leftWidth);
         dataTableView.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         dataTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        dataTableView.getSelectionModel().setCellSelectionEnabled(true);
-        dataTableView.setOnMouseClicked(new TableClickEvent<>(dataTableView));
+        dataTableView.getSelectionModel().setCellSelectionEnabled(false);
+        dataTableView.setOnMouseClicked(mouseEvent -> {
+            if (mouseEvent.getClickCount() > 1) {
+                onConnectionUsage();
+            }
+        });
 
         int colWidth = leftWidth / 4;
 
@@ -182,7 +187,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
 			int focusedIndex = selectionModel.getFocusedIndex();
             ConnectionData data = table.getItems().get(focusedIndex);
             NewConnectionBox connectionBox = (NewConnectionBox) beanFactory.getBean("newConnectionBox",
-                    this, (ConnectionDataHandler) this::onConnectionEditData);
+                    this, (ConnectionDataHandler) this::onConnectionEditData, keySpaceProvider);
             connectionBox.update(data);
         }
     }
@@ -207,6 +212,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
         doWithSelected(connectionData -> {
             MainController controller = beanFactory.getBean(MainController.class);
             controller.loadTables(connectionData);
+            ConnectionManager.this.close();
         });
     }
 
@@ -233,7 +239,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     }
 
     @Override
-    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+    public void setBeanFactory(@Nonnull BeanFactory beanFactory) throws BeansException {
         this.beanFactory = beanFactory;
     }
 }

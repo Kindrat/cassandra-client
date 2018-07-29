@@ -5,6 +5,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.VPos;
 import javafx.scene.control.Button;
 import javafx.scene.layout.*;
+import org.springframework.beans.factory.BeanFactory;
 
 import static com.github.kindrat.cassandra.client.util.UIUtil.buildButton;
 import static com.github.kindrat.cassandra.client.util.UIUtil.disable;
@@ -48,6 +49,10 @@ class TableButtons extends AnchorPane {
 
     void disableButtons() {
         disable(plusButton, minusButton, commitButton, cancelButton);
+    }
+
+    void initActions(BeanFactory beanFactory) {
+        plusButton.setOnAction(actionEvent -> beanFactory.getBean("tableEditor"));
     }
 
     private GridPane gridPane() {

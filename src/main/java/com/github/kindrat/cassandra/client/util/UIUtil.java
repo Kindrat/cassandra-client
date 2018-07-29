@@ -7,6 +7,7 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.Region;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import lombok.experimental.UtilityClass;
@@ -65,5 +66,15 @@ public class UIUtil {
         button.setMaxHeight(USE_PREF_SIZE);
         button.setPrefHeight(25);
         return button;
+    }
+
+    public static <T extends Region> void setWidth(T node, Number value) {
+        setWidth(node, value.doubleValue());
+    }
+
+    public static <T extends Region> void setWidth(T node, double value) {
+        node.setMaxWidth(value);
+        node.setMinWidth(value);
+        node.setPrefWidth(value);
     }
 }

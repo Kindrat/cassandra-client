@@ -12,6 +12,7 @@ import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterGr
 import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterTextField;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DataTableView;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.PaginationPanel;
+import com.github.kindrat.cassandra.client.ui.window.editor.tables.TableEditWidget;
 import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
 import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
 import com.github.kindrat.cassandra.client.ui.window.menu.KeySpaceProvider;
@@ -56,6 +57,12 @@ public class CassandraClientUIConfiguration {
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
     public Stage aboutBox() {
         return new AboutBox(getMainView().getPrimaryStage(), localeService, uiProperties);
+    }
+
+    @Bean
+    @Scope(BeanDefinition.SCOPE_PROTOTYPE)
+    public Stage tableEditor() {
+        return new TableEditWidget(getMainView().getPrimaryStage(), localeService, uiProperties);
     }
 
     @Bean

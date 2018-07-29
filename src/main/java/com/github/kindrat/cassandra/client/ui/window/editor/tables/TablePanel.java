@@ -10,10 +10,13 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.SplitPane;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.layout.AnchorPane;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
 
 import java.util.function.Consumer;
 
-public class TablePanel extends AnchorPane {
+public class TablePanel extends AnchorPane implements BeanFactoryAware {
     private final TableListView tableListView;
     private final TableButtons buttons;
     private final ContextMenu tableContext;
@@ -52,6 +55,11 @@ public class TablePanel extends AnchorPane {
             }
             tableContext.hide();
         });
+    }
+
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+        buttons.initActions(beanFactory);
     }
 
     private SplitPane splitPane(UIProperties uiProperties) {

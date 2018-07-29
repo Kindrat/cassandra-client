@@ -26,4 +26,8 @@ public class UIProperties {
     private Integer tablesPrefHeight = 100;
     private Integer tablesPrefWidth = 250;
     private Double tablesDividerPosition = 0.913;
+
+    private Integer tableEditorHeight = 480;
+    private Integer tableEditorWidth = 580;
+    private Integer tableEditorSpacing = 20;
 }

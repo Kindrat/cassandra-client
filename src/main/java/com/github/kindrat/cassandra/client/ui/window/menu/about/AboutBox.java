@@ -18,6 +18,7 @@ public class AboutBox extends Stage {
         this.properties = properties;
         initModality(Modality.APPLICATION_MODAL);
         initOwner(parent);
+        setTitle(localeService.getMessage("ui.menu.help.about.title"));
         setScene(buildScene());
         show();
     }

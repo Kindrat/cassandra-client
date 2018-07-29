@@ -40,7 +40,6 @@ public class NewConnectionBox extends Stage {
     private final KeySpaceProvider keyspaceProvider;
     private final TextField urlField;
     private final ComboBox<String> keyspaceField;
-    private final Button keyspaceLoaderRefreshBtn;
     private final AuthCredentialsBox credentials;
     private final CheckBox authTriggerBox;
     private final ObservableList<Node> children;
@@ -66,7 +65,7 @@ public class NewConnectionBox extends Stage {
         children.add(urlField);
 
         keyspaceField = getKeyspaceField(uiProperties.getNewConnectWidth());
-        keyspaceLoaderRefreshBtn = new Button("↺");
+        Button keyspaceLoaderRefreshBtn = new Button("↺");
         keyspaceLoaderRefreshBtn.setOnAction(actionEvent -> loadKeyspaces());
         HBox keyspaceBox = new HBox(keyspaceField, keyspaceLoaderRefreshBtn);
         keyspaceBox.setAlignment(Pos.CENTER);
