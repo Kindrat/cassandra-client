@@ -14,7 +14,6 @@ import static com.github.kindrat.cassandra.client.util.UIUtil.enable;
 class TableButtons extends AnchorPane {
 
     private final Button plusButton;
-    private final Button minusButton;
     private final Button commitButton;
     private final Button cancelButton;
 
@@ -33,9 +32,6 @@ class TableButtons extends AnchorPane {
         plusButton = buildButton("+");
         gridPane.add(plusButton, 0, 0);
 
-        minusButton = buildButton("-");
-        gridPane.add(minusButton, 1, 0);
-
         commitButton = buildButton("✓");
         gridPane.add(commitButton, 3, 0);
 
@@ -44,11 +40,11 @@ class TableButtons extends AnchorPane {
     }
 
     void enableButtons() {
-        enable(plusButton, minusButton, commitButton, cancelButton);
+        enable(plusButton, commitButton, cancelButton);
     }
 
     void disableButtons() {
-        disable(plusButton, minusButton, commitButton, cancelButton);
+        disable(plusButton, commitButton, cancelButton);
     }
 
     void initActions(BeanFactory beanFactory) {

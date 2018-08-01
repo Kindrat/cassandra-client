@@ -4,14 +4,10 @@ import com.datastax.driver.core.*;
 import com.github.kindrat.cassandra.client.ui.DataObject;
 import com.github.kindrat.cassandra.client.util.EvenMoreFutures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.sun.javafx.tk.FontLoader;
-import com.sun.javafx.tk.Toolkit;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
-import javafx.scene.control.Tooltip;
 import lombok.Getter;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +21,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static com.github.kindrat.cassandra.client.ui.fx.TableColumns.buildColumn;
 import static com.github.kindrat.cassandra.client.util.EvenMoreFutures.*;
-import static com.github.kindrat.cassandra.client.util.UIUtil.cellFactory;
 import static com.github.nginate.commons.lang.NStrings.format;
 
 @Slf4j
@@ -180,20 +176,6 @@ public class TableContext {
             columns.add(column);
         });
         return columns;
-    }
-
-    private TableColumn<DataObject, Object> buildColumn(DataType dataType, String label) {
-        TableColumn<DataObject, Object> counterColumn = new TableColumn<>();
-        Label counterColumnLabel = new Label(label);
-        counterColumnLabel.setTooltip(new Tooltip(dataType.asFunctionParameterString()));
-
-        TypeCodec<Object> counterCodec = CodecRegistry.DEFAULT_INSTANCE.codecFor(dataType);
-        counterColumn.setCellFactory(cellFactory(counterCodec));
-        counterColumn.setGraphic(counterColumnLabel);
-        FontLoader fontLoader = Toolkit.getToolkit().getFontLoader();
-        float width = fontLoader.computeStringWidth(counterColumnLabel.getText(), counterColumnLabel.getFont());
-        counterColumn.setMinWidth(width * 1.3);
-        return counterColumn;
     }
 
     private void printQueryTrace(int page, ListenableFuture<QueryTrace> listenableFuture) {

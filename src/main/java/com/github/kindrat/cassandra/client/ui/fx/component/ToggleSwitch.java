@@ -1,4 +1,4 @@
-package com.github.kindrat.cassandra.client.ui;
+package com.github.kindrat.cassandra.client.ui.fx.component;
 
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Pos;

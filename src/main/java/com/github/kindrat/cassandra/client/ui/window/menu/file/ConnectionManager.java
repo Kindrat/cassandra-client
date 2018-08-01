@@ -6,7 +6,7 @@ import com.github.kindrat.cassandra.client.properties.StorageProperties;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.ConnectionData;
 import com.github.kindrat.cassandra.client.ui.MainController;
-import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
+import com.github.kindrat.cassandra.client.ui.fx.CellFactory;
 import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
 import com.github.kindrat.cassandra.client.ui.window.menu.KeySpaceProvider;
 import com.google.common.io.Files;
@@ -33,7 +33,6 @@ import java.util.function.Function;
 
 import static com.github.kindrat.cassandra.client.util.JsonUtil.fromJson;
 import static com.github.kindrat.cassandra.client.util.JsonUtil.toJson;
-import static com.github.kindrat.cassandra.client.util.UIUtil.cellFactory;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Slf4j
@@ -43,11 +42,12 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     private final UIProperties uiProperties;
     private final StorageProperties storageProperties;
     private final TableView<ConnectionData> table;
-    private BeanFactory beanFactory;
     private final File configurationsFile;
+    private BeanFactory beanFactory;
 
     @SneakyThrows
-    public ConnectionManager(Stage parent, MessageByLocaleService localeService, KeySpaceProvider keySpaceProvider, UIProperties uiProperties,
+    public ConnectionManager(Stage parent, MessageByLocaleService localeService, KeySpaceProvider keySpaceProvider,
+            UIProperties uiProperties,
             StorageProperties storageProperties) {
         this.localeService = localeService;
         this.keySpaceProvider = keySpaceProvider;
@@ -96,7 +96,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
 
         buttons.getChildren().add(newConnection);
         buttons.getChildren().add(removeConnection);
-		buttons.getChildren().add(editConnection);
+        buttons.getChildren().add(editConnection);
         buttons.getChildren().add(useConnection);
 
         SplitPane splitPane = new SplitPane(connectionBox, buttons);
@@ -104,6 +104,11 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
 
         setScene(content);
         show();
+    }
+
+    @Override
+    public void setBeanFactory(@Nonnull BeanFactory beanFactory) throws BeansException {
+        this.beanFactory = beanFactory;
     }
 
     @SneakyThrows
@@ -158,7 +163,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
             String> extractor) {
         TableColumn<ConnectionData, String> column = new TableColumn<>();
         Label columnLabel = new Label(name);
-        column.setCellFactory(cellFactory(TypeCodec.varchar()));
+        column.setCellFactory(CellFactory.create(TypeCodec.varchar()));
 
         column.setCellValueFactory(param -> {
             String field = extractor.apply(param.getValue());
@@ -182,9 +187,9 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     }
 
     private void onConnectionEdit() {
-		TableView.TableViewSelectionModel<ConnectionData> selectionModel = table.getSelectionModel();
+        TableView.TableViewSelectionModel<ConnectionData> selectionModel = table.getSelectionModel();
         if (!selectionModel.isEmpty()) {
-			int focusedIndex = selectionModel.getFocusedIndex();
+            int focusedIndex = selectionModel.getFocusedIndex();
             ConnectionData data = table.getItems().get(focusedIndex);
             NewConnectionBox connectionBox = (NewConnectionBox) beanFactory.getBean("newConnectionBox",
                     this, (ConnectionDataHandler) this::onConnectionEditData, keySpaceProvider);
@@ -192,7 +197,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
         }
     }
 
-	private void onConnectionEditData(ConnectionData newData) {
+    private void onConnectionEditData(ConnectionData newData) {
         TableView.TableViewSelectionModel<ConnectionData> selectionModel = table.getSelectionModel();
         if (!selectionModel.isEmpty()) {
             int focusedIndex = selectionModel.getFocusedIndex();
@@ -201,10 +206,10 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
             data.setPassword(newData.getPassword());
             data.setUrl(newData.getUrl());
             data.setUsername(newData.getUsername());
-			// hack: better way to refresh the display??
-			table.getColumns().get(0).setVisible(false);
-			table.getColumns().get(0).setVisible(true);
-		}           
+            // hack: better way to refresh the display??
+            table.getColumns().get(0).setVisible(false);
+            table.getColumns().get(0).setVisible(true);
+        }
         flushConfigFile(configurationsFile);
     }
 
@@ -236,10 +241,5 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     @SneakyThrows
     private void flushConfigFile(File configurationsFile) {
         Files.write(toJson(table.getItems()), configurationsFile, UTF_8);
-    }
-
-    @Override
-    public void setBeanFactory(@Nonnull BeanFactory beanFactory) throws BeansException {
-        this.beanFactory = beanFactory;
     }
 }

@@ -12,7 +12,7 @@ import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterGr
 import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterTextField;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DataTableView;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.PaginationPanel;
-import com.github.kindrat.cassandra.client.ui.window.editor.tables.TableEditWidget;
+import com.github.kindrat.cassandra.client.ui.widget.TableEditWidget;
 import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
 import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
 import com.github.kindrat.cassandra.client.ui.window.menu.KeySpaceProvider;
