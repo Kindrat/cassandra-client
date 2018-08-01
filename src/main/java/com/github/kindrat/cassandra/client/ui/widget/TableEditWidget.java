@@ -5,6 +5,7 @@ import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.fx.CellValueFactory;
 import com.github.kindrat.cassandra.client.ui.fx.component.ToggleSwitch;
+import com.github.kindrat.cassandra.client.util.CqlUtil;
 import com.github.kindrat.cassandra.client.util.UIUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -21,9 +22,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import static com.github.kindrat.cassandra.client.ui.fx.TableColumns.buildColumn;
 import static com.github.kindrat.cassandra.client.util.UIUtil.computeTextContainerWidth;
 import static com.github.kindrat.cassandra.client.util.UIUtil.fillParent;
+import static java.lang.String.format;
 
 @Slf4j
 public class TableEditWidget extends Stage {
@@ -31,6 +38,8 @@ public class TableEditWidget extends Stage {
     private final UIProperties properties;
     private final Pane editorHolder = new Pane();
 
+    private final ViewDataConverter viewDataConverter = new ViewDataConverter();
+    private final List<TableRow> initialValues = new ArrayList<>();
     private final ObservableList<TableRow> rows = FXCollections.observableArrayList();
     private final TextArea tableNameArea;
     private final TableView<TableRow> tableEditor;
@@ -45,7 +54,21 @@ public class TableEditWidget extends Stage {
         initModality(Modality.APPLICATION_MODAL);
         initOwner(parent);
         setScene(buildScene());
+        init(Collections.emptyList());
         show();
+    }
+
+    public void init(List<TableRow> rows) {
+        initialValues.addAll(rows);
+        reset();
+    }
+
+    public void reset() {
+        rows.clear();
+        rows.addAll(initialValues);
+        if (initialValues.isEmpty()) {
+            rows.add(new TableRow("name", DataType.Name.TEXT, false, false, false));
+        }
     }
 
     private Scene buildScene() {
@@ -75,16 +98,24 @@ public class TableEditWidget extends Stage {
 
         toggleSwitch.onEnabled(() -> {
             editorHolder.getChildren().clear();
+            textView.setText(viewDataConverter.toText(rows, tableNameArea.getText()));
+            tableNameBox.setVisible(false);
             editorHolder.getChildren().add(textView);
         });
 
         toggleSwitch.onDisabled(() -> {
             editorHolder.getChildren().clear();
+            Map.Entry<String, List<TableRow>> ddlData = viewDataConverter.fromText(textView.getText());
+            tableNameArea.setText(ddlData.getKey());
+            rows.clear();
+            rows.addAll(ddlData.getValue());
+            tableNameBox.setVisible(true);
             editorHolder.getChildren().add(tableEditor);
         });
 
         Button createButton = new Button(localeService.getMessage("ui.editor.table_editor.buttons.create"));
         Button resetButton = new Button(localeService.getMessage("ui.editor.table_editor.buttons.reset"));
+        resetButton.setOnAction(event -> reset());
         HBox buttons = new HBox(20.0, createButton, resetButton);
         buttons.setAlignment(Pos.CENTER);
 
@@ -164,5 +195,35 @@ public class TableEditWidget extends Stage {
         private Boolean isPartitionKey;
         private Boolean isClusteringKey;
         private Boolean hasIndex;
+    }
+
+    private static class ViewDataConverter {
+        private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("([cC][rR][eE][aA][tT][eE])(\\ \\S+\\ )([tT][aA][bB][lL][eE]\\ )(\\S+)(\\ \\()");
+
+        Map.Entry<String, List<TableRow>> fromText(String text) {
+            Matcher matcher = TABLE_NAME_PATTERN.matcher(text);
+            String tableName = matcher.matches() ? matcher.group(4) : "";
+            return new AbstractMap.SimpleEntry<>(tableName, Collections.emptyList());
+        }
+
+        String toText(List<TableRow> rows, String table) {
+            List<String> rowDefinitions = rows.stream()
+                    .map(tableRow -> format("%s %s", tableRow.getName(), tableRow.getType()))
+                    .collect(Collectors.toList());
+
+            rows.stream()
+                    .filter(tableRow -> tableRow.getIsClusteringKey() || tableRow.getIsPartitionKey())
+                    .sorted((o1, o2) -> Comparator.comparing(TableRow::getIsPartitionKey).compare(o1, o2))
+                    .map(TableRow::getName)
+                    .reduce((s, s2) -> s + ", " + s2)
+                    .ifPresent(s -> {
+                        rowDefinitions.add(String.format("PRIMARY KEY (%s)", s));
+
+                    });
+
+            String tableRows = rowDefinitions.stream().reduce((s, s2) -> s + ", " + s2).orElse("");
+            String tableRawDDL = String.format("CREATE TABLE %s (%s)", table, tableRows);
+            return CqlUtil.formatDDL(tableRawDDL);
+        }
     }
 }
