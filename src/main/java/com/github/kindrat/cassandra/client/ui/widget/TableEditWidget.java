@@ -14,6 +14,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -51,6 +52,7 @@ public class TableEditWidget extends Stage {
         this.tableEditor = buildTableView();
         this.tableNameArea = buildTableArea();
         setTitle(localeService.getMessage("ui.editor.table_editor.title"));
+        getIcons().add(new Image("cassandra_ico.png"));
         initModality(Modality.APPLICATION_MODAL);
         initOwner(parent);
         setScene(buildScene());
@@ -198,12 +200,42 @@ public class TableEditWidget extends Stage {
     }
 
     private static class ViewDataConverter {
-        private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("([cC][rR][eE][aA][tT][eE])(\\ \\S+\\ )([tT][aA][bB][lL][eE]\\ )(\\S+)(\\ \\()");
+        private static final Pattern TABLE_PATTERN = Pattern.compile("([cC][rR][eE][aA][tT][eE])(\\s+)([tT][aA][bB][lL][eE])(\\s+)(.*)(\\s+)(\\()([.\\s\\S]*)(\\))");
+        private static final Pattern ROW_PATTERN = Pattern.compile("(\\s+)([a-zA-Z]+)(\\s+)([a-zA-Z]+)(\\s*)");
 
         Map.Entry<String, List<TableRow>> fromText(String text) {
-            Matcher matcher = TABLE_NAME_PATTERN.matcher(text);
-            String tableName = matcher.matches() ? matcher.group(4) : "";
-            return new AbstractMap.SimpleEntry<>(tableName, Collections.emptyList());
+            Matcher matcher = TABLE_PATTERN.matcher(text);
+            boolean tableValid = matcher.find();
+            if (tableValid) {
+                String tableName = matcher.group(5);
+                String rows = matcher.group(8);
+                String[] separateRawRows = rows.split(",");
+                List<TableRow> tableRows = Arrays.stream(separateRawRows)
+                        .filter(row -> ROW_PATTERN.matcher(row).find())
+                        .map(this::fromString)
+                        .collect(Collectors.toList());
+
+                return new AbstractMap.SimpleEntry<>(tableName, tableRows);
+            }
+            return new AbstractMap.SimpleEntry<>("", Collections.emptyList());
+        }
+
+        TableRow fromString(String rawRow) {
+            Matcher matcher = ROW_PATTERN.matcher(rawRow);
+            boolean matches = matcher.find();
+            if (matches) {
+                String name = matcher.group(2);
+                String type = matcher.group(4);
+                TableRow tableRow = new TableRow();
+                tableRow.setName(name);
+                tableRow.setType(DataType.Name.valueOf(type.toUpperCase()));
+                tableRow.setHasIndex(false);
+                tableRow.setIsClusteringKey(false);
+                tableRow.setIsPartitionKey(false);
+                return tableRow;
+            } else {
+                throw new IllegalStateException("Regex match should happens before");
+            }
         }
 
         String toText(List<TableRow> rows, String table) {
@@ -216,10 +248,7 @@ public class TableEditWidget extends Stage {
                     .sorted((o1, o2) -> Comparator.comparing(TableRow::getIsPartitionKey).compare(o1, o2))
                     .map(TableRow::getName)
                     .reduce((s, s2) -> s + ", " + s2)
-                    .ifPresent(s -> {
-                        rowDefinitions.add(String.format("PRIMARY KEY (%s)", s));
-
-                    });
+                    .ifPresent(s -> rowDefinitions.add(String.format("PRIMARY KEY (%s)", s)));
 
             String tableRows = rowDefinitions.stream().reduce((s, s2) -> s + ", " + s2).orElse("");
             String tableRawDDL = String.format("CREATE TABLE %s (%s)", table, tableRows);

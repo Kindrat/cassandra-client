@@ -3,6 +3,7 @@ package com.github.kindrat.cassandra.client.ui.window.menu.about;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
@@ -18,6 +19,7 @@ public class AboutBox extends Stage {
         this.properties = properties;
         initModality(Modality.APPLICATION_MODAL);
         initOwner(parent);
+        getIcons().add(new Image("cassandra_ico.png"));
         setTitle(localeService.getMessage("ui.menu.help.about.title"));
         setScene(buildScene());
         show();

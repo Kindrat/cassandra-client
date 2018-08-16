@@ -5,8 +5,6 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-import static org.gradle.api.tasks.wrapper.Wrapper.DistributionType.*
-
 buildscript {
     ext {
         springBootVersion = '2.0.1.RELEASE'
@@ -65,8 +63,9 @@ ext {
     isOsLinux = System.getProperty('os.name').toLowerCase().contains('linux')
 
     dockerComposeCacheDir = "$rootDir/.gradle/docker-compose"
-    dockerComposeScript = "$dockerComposeCacheDir/$dockerComposeVersion/docker-compose.sh"
-    dockerComposeCommand = isOsLinux && project.hasProperty('dockerComposeVersion') ?
+    dockerComposeScript = isOsLinux ? "$dockerComposeCacheDir/$dockerComposeVersion/docker-compose.sh"
+            : "$dockerComposeCacheDir/$dockerComposeVersion/docker-compose.exe"
+    dockerComposeCommand = project.hasProperty('dockerComposeVersion') ?
             dockerComposeScript : 'docker-compose'
 
     composeProperties = [
@@ -125,7 +124,7 @@ scmVersion {
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.7'
-    distributionType = ALL
+    distributionType = "all"
 }
 
 bootRun {
@@ -144,15 +143,15 @@ bootJar {
 
 task downloadDockerCompose(type: Download) {
     def composeVersion = project.findProperty('dockerComposeVersion')
-    def composeSrc = "https://github.com/docker/compose/releases/download/$composeVersion/docker-compose-linux-x86_64"
-
+    def composeSrc = isOsLinux ? "https://github.com/docker/compose/releases/download/$composeVersion/docker-compose-linux-x86_64"
+        : "https://github.com/docker/compose/releases/download/1.22.0/docker-compose-Windows-x86_64.exe"
     inputs.property('composeVersion', composeVersion)
 
     overwrite false
     src composeSrc
     dest dockerComposeScript
 
-    onlyIf { isOsLinux && composeVersion != null }
+    onlyIf { composeVersion != null }
 
     doFirst { delete(dockerComposeCacheDir) }
     doLast { file(dockerComposeScript).executable = true }

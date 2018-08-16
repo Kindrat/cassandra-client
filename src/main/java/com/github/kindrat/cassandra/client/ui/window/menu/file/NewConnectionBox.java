@@ -18,6 +18,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -55,6 +56,7 @@ public class NewConnectionBox extends Stage {
         initModality(Modality.APPLICATION_MODAL);
         initOwner(parent);
         setTitle(localeService.getMessage("ui.menu.file.connect.title"));
+        getIcons().add(new Image("cassandra_ico.png"));
 
         VBox connectBox = new VBox(uiProperties.getNewConnectSpacing());
         connectBox.setAlignment(Pos.CENTER);

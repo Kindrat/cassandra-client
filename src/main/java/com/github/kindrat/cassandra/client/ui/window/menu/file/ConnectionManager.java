@@ -15,6 +15,7 @@ import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -57,10 +58,11 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
         initModality(Modality.APPLICATION_MODAL);
         initOwner(parent);
         setTitle(localeService.getMessage("ui.menu.file.manager.title"));
+        getIcons().add(new Image("cassandra_ico.png"));
         Integer width = uiProperties.getConnectionManagerWidth();
         Integer height = uiProperties.getConnectionManagerHeight();
         Integer rightWidth = uiProperties.getConnectionManagerRightPaneWidth();
-        Integer leftWidth = width - rightWidth;
+        int leftWidth = width - rightWidth;
 
         VBox connectionBox = new VBox(uiProperties.getNewConnectSpacing());
         connectionBox.setAlignment(Pos.CENTER);
