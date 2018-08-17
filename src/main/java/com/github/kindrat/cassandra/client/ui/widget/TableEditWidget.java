@@ -126,6 +126,7 @@ public class TableEditWidget extends Stage {
         children.add(headerBox);
         children.add(editorHolder);
         children.add(buttons);
+        editorHolder.getChildren().add(tableEditor);
 
         dialogScene.heightProperty().addListener((observableValue, oldValue, newValue) -> {
             tableEditor.setPrefHeight(newValue.doubleValue() - headerBox.getHeight() - buttons.getHeight());
@@ -138,12 +139,11 @@ public class TableEditWidget extends Stage {
             UIUtil.setWidth(buttons, newValue);
         });
 
-        tableEditor.setPrefWidth(editor.getPrefWidth());
-        tableEditor.setPrefHeight(editor.getPrefWidth() - headerBox.getHeight() - buttons.getHeight());
-        textView.setPrefWidth(editor.getPrefWidth());
-        textView.setPrefHeight(editor.getPrefWidth() - headerBox.getHeight() - buttons.getHeight());
-
-        editorHolder.getChildren().add(tableEditor);
+        UIUtil.setWidth(textView, properties.getTableEditorWidth());
+        setOnShown(event -> {
+            double offset = headerBox.getHeight() + buttons.getHeight();
+            textView.setPrefHeight(properties.getTableEditorHeight() - offset);
+        });
         return dialogScene;
     }
 
