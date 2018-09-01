@@ -191,7 +191,7 @@ envComposeUp {
 
 migrator {
     host = "127.0.0.1"
-    port = 9042
+    port = 19042
     keyspace = "test"
     script = "${rootDir}/init_cassandra.cql"
 }
@@ -203,6 +203,7 @@ gradle.projectsEvaluated {
 }
 
 tasks.withType(Test) {
+    useTestNG()
     testLogging {
         exceptionFormat = TestExceptionFormat.FULL
         stackTraceFilters = []
@@ -220,3 +221,6 @@ tasks.withType(Test) {
 
 migratorDropKeyspace.dependsOn envComposeUp
 migratorExecute.dependsOn envComposeUp
+
+test.dependsOn migratorExecute
+test.finalizedBy envComposeDown

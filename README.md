@@ -29,7 +29,7 @@ What it already can:
 
 1. Clone the source if you haven't done so. `git clone https://github.com/Kindrat/cassandra-client.git`
 2. Go to the directory: cd `cassandra-client`
-3. Build sources using gradle:
+3. Build sources using gradle (add `-x test` to provided cli command to skip tests):
 
     3.1 For Windows `./gradlew.bat build`
     
