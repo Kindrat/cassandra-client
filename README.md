@@ -3,6 +3,8 @@
 This client is intended to be a simple GUI solution to work with cassandra 3.
 
 [![CodeFactor](https://www.codefactor.io/repository/github/kindrat/cassandra-client/badge)](https://www.codefactor.io/repository/github/kindrat/cassandra-client)
+[![Build Status](https://travis-ci.com/Kindrat/cassandra-client.svg?branch=master)](https://travis-ci.com/Kindrat/cassandra-client)
+[![codecov](https://codecov.io/gh/Kindrat/cassandra-client/branch/master/graph/badge.svg)](https://codecov.io/gh/Kindrat/cassandra-client)
 
 What it already can:
 - [x] connect to cassandra
