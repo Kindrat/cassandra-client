@@ -12,8 +12,8 @@ before_cache:
 before_script:
   - chmod +x gradlew
 script:
-  - ./gradlew check
-  - ./gradlew codeCoverageReport
+  - ./gradlew check --warning-mode=all
+  - ./gradlew codeCoverageReport --warning-mode=all
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 cache:
