@@ -6,8 +6,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -22,12 +20,12 @@ public class EvenMoreFutures {
         CompletableFuture<T> future = new CompletableFuture<>();
         Futures.addCallback(listenableFuture, new FutureCallback<T>() {
             @Override
-            public void onSuccess(@Nullable T result) {
+            public void onSuccess(T result) {
                 runLater(() -> future.complete(result));
             }
 
             @Override
-            public void onFailure(@Nonnull Throwable t) {
+            public void onFailure(Throwable t) {
                 runLater(() -> future.completeExceptionally(t));
             }
         });

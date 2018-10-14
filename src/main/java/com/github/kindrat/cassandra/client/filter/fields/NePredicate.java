@@ -16,7 +16,7 @@ public class NePredicate extends RowPredicate {
         Object actual = data.get(getField());
         if (expected instanceof Comparable && actual instanceof Comparable) {
             //noinspection unchecked
-            return Comparable.class.cast(actual).compareTo(expected) != 0;
+            return ((Comparable) actual).compareTo(expected) != 0;
         } else {
             return expected != actual;
         }

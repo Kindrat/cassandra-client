@@ -1,12 +1,11 @@
 package com.github.kindrat.cassandra.client.util;
 
-import com.sun.javafx.tk.FontLoader;
-import com.sun.javafx.tk.Toolkit;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Region;
 import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.StringUtils;
 
@@ -61,8 +60,9 @@ public class UIUtil {
     }
 
     public static double computeTextContainerWidth(String text, Font font) {
-        FontLoader fontLoader = Toolkit.getToolkit().getFontLoader();
-        float width = fontLoader.computeStringWidth(text, font);
+        Text theText = new Text(text);
+        theText.setFont(font);
+        double width = theText.getBoundsInLocal().getWidth();
         return width * 1.3;
     }
 }

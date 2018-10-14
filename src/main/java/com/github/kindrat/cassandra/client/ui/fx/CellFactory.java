@@ -6,7 +6,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -33,7 +32,6 @@ public class CellFactory {
             }
 
             @Override
-            @SneakyThrows
             public T fromString(String string) {
                 return Enum.valueOf(enumClass, string);
             }

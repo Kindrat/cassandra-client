@@ -16,7 +16,6 @@ import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 import org.springframework.data.cassandra.core.cql.SessionCallback;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Set;
@@ -80,8 +79,7 @@ public class CassandraClientAdapter {
         });
     }
 
-    public CompletableFuture<List<String>> getAllKeyspaces(String url, @Nullable String username,
-            @Nullable String password) {
+    public CompletableFuture<List<String>> getAllKeyspaces(String url, String username, String password) {
         ConnectionData connectionData = new ConnectionData(url, "system_schema", username, password);
         return connect(connectionData)
                 .thenApply(template -> template.select("SELECT keyspace_name FROM keyspaces", String.class));

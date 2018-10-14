@@ -19,10 +19,10 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.AnchorPane;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 
-import javax.annotation.PostConstruct;
 import java.util.Map;
 import java.util.Optional;
 
@@ -41,7 +41,7 @@ import static javafx.scene.input.KeyCode.SPACE;
 import static javafx.scene.input.KeyCombination.CONTROL_ANY;
 
 @Slf4j
-public class MainController {
+public class MainController implements InitializingBean {
 
     private final int pageSize = 1000;
     @Autowired
@@ -76,8 +76,8 @@ public class MainController {
     @FXML
     private AnchorPane eventAnchor;
 
-    @PostConstruct
-    public void init() {
+    @Override
+    public void afterPropertiesSet() throws Exception {
         Menu fileMenu = (Menu) beanFactory.getBean("fileMenu");
         Menu helpMenu = (Menu) beanFactory.getBean("helpMenu");
 

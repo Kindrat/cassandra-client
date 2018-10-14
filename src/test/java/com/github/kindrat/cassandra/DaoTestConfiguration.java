@@ -18,8 +18,6 @@ import org.springframework.data.cassandra.config.ClusterBuilderConfigurer;
 import org.springframework.data.cassandra.repository.config.EnableCassandraRepositories;
 import org.springframework.data.cassandra.repository.support.SimpleCassandraRepository;
 
-import javax.annotation.Nonnull;
-
 import static org.springframework.beans.BeanUtils.instantiateClass;
 
 @EntityScan("com.github.kindrat.cassandra")
@@ -63,7 +61,6 @@ public class DaoTestConfiguration extends AbstractCassandraConfiguration {
         };
     }
 
-    @Nonnull
     @Override
     protected String getContactPoints() {
         return String.join(",", properties.getContactPoints());
@@ -101,7 +98,6 @@ public class DaoTestConfiguration extends AbstractCassandraConfiguration {
                 .setMaxRequestsPerConnection(HostDistance.REMOTE, 2000);
     }
 
-    @Nonnull
     protected String getKeyspaceName() {
         return properties.getKeyspaceName();
     }

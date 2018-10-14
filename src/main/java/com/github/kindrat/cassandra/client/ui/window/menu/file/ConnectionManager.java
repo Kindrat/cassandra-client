@@ -26,7 +26,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
@@ -109,7 +108,7 @@ public class ConnectionManager extends Stage implements BeanFactoryAware {
     }
 
     @Override
-    public void setBeanFactory(@Nonnull BeanFactory beanFactory) throws BeansException {
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
         this.beanFactory = beanFactory;
     }
 
