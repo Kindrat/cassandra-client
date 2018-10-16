@@ -8,8 +8,6 @@ import com.github.kindrat.cassandra.client.filter.condition.*;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.util.UIUtil;
 import com.google.common.collect.Sets;
-import com.sun.javafx.tk.FontLoader;
-import com.sun.javafx.tk.Toolkit;
 import javafx.geometry.Insets;
 import javafx.geometry.Side;
 import javafx.scene.control.ContextMenu;
@@ -25,6 +23,7 @@ import java.util.stream.Collectors;
 
 import static com.github.kindrat.cassandra.client.util.StreamUtils.toMap;
 import static com.github.kindrat.cassandra.client.util.StringUtil.lastWord;
+import static com.github.kindrat.cassandra.client.util.UIUtil.computeTextContainerWidth;
 import static java.util.Arrays.stream;
 import static java.util.Collections.singleton;
 import static org.apache.commons.lang3.StringUtils.startsWithIgnoreCase;
@@ -112,8 +111,7 @@ public class FilterTextField extends TextField {
             });
         });
 
-        FontLoader fontLoader = Toolkit.getToolkit().getFontLoader();
-        float width = fontLoader.computeStringWidth(getText(), getFont());
+        double width = computeTextContainerWidth(getText(), getFont());
         context.show(this, Side.BOTTOM, width, 0);
     }
 
