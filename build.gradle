@@ -164,14 +164,6 @@ wrapper {
 bootRun {
     systemProperties System.properties
     mainClassName = "com.github.kindrat.cassandra.client.Java11Starter"
-
-    doFirst {
-        jvmArgs = [
-                '--module-path', classpath.asPath,
-                '--add-modules', 'javafx.controls'
-        ]
-    }
-
     systemProperties.remove("java.endorsed.dirs")
 }
 

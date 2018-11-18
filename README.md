@@ -25,7 +25,7 @@ What it already can:
 - [ ] packaging
 
 ## Requirements
-* Install JDK11 ([OpenJDK](http://openjdk.java.net/))
+* Install JDK11 ([OpenJDK](http://openjdk.java.net/)) or [AdoptOpenJDK](https://adoptopenjdk.net/index.html)
 * Set `JAVA_HOME` env variable [doc](https://docs.oracle.com/cd/E19182-01/820-7851/inst_cli_jdk_javahome_t/)
 
 ## Build and run
@@ -38,7 +38,7 @@ What it already can:
     
     3.2 For Unix `./gradlew build`
     
-4. Run client `java -jar build/libs/cassadra-client-1.0.2.jar` or from gradle `./gradlew bootRun`
+4. Run client `java -jar build/libs/cassadra-client-1.0.2-exec.jar` or from gradle `./gradlew bootRun`
 
 ### Editor window
 On selecting table data from context menu in table list all rows are loaded from cassandra
