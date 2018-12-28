@@ -95,7 +95,7 @@ public class MainController {
                     if (isSelect(cqlQuery)) {
                         Optional<String> tableOptional = getSelectTable(cqlQuery);
                         tableOptional.ifPresent(table ->
-                                showDataRows(customView(table, cqlQuery, null, clientAdapter, pageSize)));
+                                showDataRows(customView(table, cqlQuery, tableMetadata.get(table), clientAdapter, pageSize)));
                     } else {
                         clientAdapter.execute(cqlQuery).whenComplete(handleErrorIfPresent(this::printError));
                     }
