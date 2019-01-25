@@ -16,6 +16,7 @@ What it already can:
 - [x] apply composite filters to loaded data
 - [x] execute query
 - [x] lazy data load/pagination
+- [x] export data to CSV
 - [ ] add/delete tables
 - [ ] validation in filter values
 - [ ] safe mode with manual commit-reset

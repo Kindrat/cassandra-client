@@ -17,6 +17,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.QuoteMode;
@@ -25,6 +26,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 
 import java.io.File;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -60,6 +62,7 @@ public class DataExportWidget extends Stage {
         return metadataProcessor;
     }
 
+    @SneakyThrows
     private Scene buildScene() {
         AnchorPane container = new AnchorPane();
         VBox editor = new VBox();
@@ -69,6 +72,9 @@ public class DataExportWidget extends Stage {
         fillParent(editor);
 
         TextField pathField = new TextField();
+        URL location = this.getClass().getProtectionDomain().getCodeSource().getLocation();
+        File defaultDir = new File(location.toURI()).getParentFile();
+        pathField.setText(defaultDir + "/" + table + ".csv");
         Button startButton = new Button("Start export");
 
         HBox settingsContainer = new HBox();
@@ -88,11 +94,22 @@ public class DataExportWidget extends Stage {
                             CSVFormat csvFormat = formatSettingsBox.build();
                             File target = new File(pathField.getText());
                             metadataProcessor.onNext(new CsvTargetMetadata(table, csvFormat, target));
+                            hide();
                         }
                     });
                 },
                 () -> settingsContainer.getChildren().clear())
         );
+
+        startButton.setOnAction(event -> {
+            if (!customizeCheckbox.isSelected()) {
+                FormatSettingsBox formatSettingsBox = buildFormatSettingsBox(formats);
+                CSVFormat csvFormat = formatSettingsBox.build();
+                File target = new File(pathField.getText());
+                metadataProcessor.onNext(new CsvTargetMetadata(table, csvFormat, target));
+                hide();
+            }
+        });
 
         formats.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (!Objects.equals(oldValue, newValue)) {
@@ -113,6 +130,8 @@ public class DataExportWidget extends Stage {
         destinationButton.setOnAction(event -> {
             FileChooser savePathProvider = new FileChooser();
             savePathProvider.setTitle("Save CSV");
+            savePathProvider.setInitialFileName(table + ".csv");
+            savePathProvider.setSelectedExtensionFilter(new FileChooser.ExtensionFilter("CSV", "csv"));
             File file = savePathProvider.showSaveDialog(this);
             if (file != null) {
                 pathField.setText(file.getAbsolutePath());

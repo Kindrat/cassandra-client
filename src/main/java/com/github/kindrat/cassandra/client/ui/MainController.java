@@ -140,17 +140,17 @@ public class MainController {
         showDataRows(fullTable(tableName, tableMetadata.get(tableName), clientAdapter, pageSize));
     }
 
-
     public void exportDataForTable(String tableName) {
         eventLogger.fireLogEvent("Exporting data for table '{}'", tableName);
         DataExportWidget dataExporter = (DataExportWidget) beanFactory.getBean("dataExporter", tableName);
         dataExporter.getMetadata()
-                .map(metadata -> new CsvWriteBackgroundTask(metadata, clientAdapter))
+                .map(metadata -> new CsvWriteBackgroundTask(metadata, tableMetadata.get(tableName), clientAdapter))
                 .map(backgroundTaskExecutor::submit)
                 .map(uuid -> Mono.just(uuid)
                         .doOnNext(backgroundTaskMonitor::addTask)
                         .doOnError(throwable -> backgroundTaskMonitor.remove(uuid))
                         .doOnError(throwable -> log.error("Task {} failed", uuid, throwable)))
+                .doOnSuccess(uuidMono -> eventLogger.fireLogEvent("Exported data for table '{}'", tableName))
                 .subscribe();
     }
 

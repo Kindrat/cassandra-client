@@ -132,7 +132,7 @@ public class CassandraClientAdapter {
     }
 
     public Mono<Long> count(String table) {
-        return Mono.fromFuture(execute(format("select count(*) from {} limit 100000000")))
+        return Mono.fromFuture(execute(format("select count(*) from {} limit 100000000", table)))
                 .map(ResultSet::one)
                 .map(row -> row.getLong(0));
     }
