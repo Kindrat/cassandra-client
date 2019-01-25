@@ -30,4 +30,8 @@ public class UIProperties {
     private Integer tableEditorHeight = 480;
     private Integer tableEditorWidth = 580;
     private Integer tableEditorSpacing = 20;
+
+    private Integer exportHeight = 480;
+    private Integer exportWidth = 580;
+    private Integer exportSpacing = 20;
 }

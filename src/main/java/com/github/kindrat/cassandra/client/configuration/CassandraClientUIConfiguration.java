@@ -6,6 +6,8 @@ import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
 import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.ui.View;
+import com.github.kindrat.cassandra.client.ui.widget.DataExportWidget;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.BackgroundTaskMonitor;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.EventLogger;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.TableDataGridPane;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterGrid;
@@ -22,6 +24,7 @@ import com.github.kindrat.cassandra.client.ui.window.menu.file.NewConnectionBox;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -63,6 +66,12 @@ public class CassandraClientUIConfiguration {
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
     public Stage tableEditor() {
         return new TableEditWidget(getMainView().getPrimaryStage(), localeService, uiProperties);
+    }
+
+    @Bean
+    @Scope(BeanDefinition.SCOPE_PROTOTYPE)
+    public Stage dataExporter(String table) {
+        return new DataExportWidget(getMainView().getPrimaryStage(), table, localeService, uiProperties);
     }
 
     @Bean
@@ -127,6 +136,11 @@ public class CassandraClientUIConfiguration {
     @Bean
     public TablePanel tablePanel() {
         return new TablePanel(uiProperties, localeService, getMainController());
+    }
+
+    @Bean
+    public BackgroundTaskMonitor backgroundTaskMonitor() {
+        return new BackgroundTaskMonitor(uiProperties);
     }
 
     @SneakyThrows

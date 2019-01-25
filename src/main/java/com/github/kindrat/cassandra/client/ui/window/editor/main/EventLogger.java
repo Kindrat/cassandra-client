@@ -8,7 +8,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.RowConstraints;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.github.kindrat.cassandra.client.util.UIUtil.fillParent;
 import static com.github.nginate.commons.lang.NStrings.format;
 import static javafx.application.Platform.runLater;
 
@@ -18,16 +17,14 @@ public class EventLogger extends GridPane {
     private final Label serverLabel;
 
     public EventLogger() {
-        setVisible(false);
         setPrefHeight(30);
-        setPrefWidth(612);
 
         ColumnConstraints column1 = new ColumnConstraints();
-        column1.setPercentWidth(85);
+        column1.setPercentWidth(65);
         column1.setHgrow(Priority.SOMETIMES);
 
         ColumnConstraints column2 = new ColumnConstraints();
-        column2.setPercentWidth(15);
+        column2.setPercentWidth(20);
         column2.setHgrow(Priority.SOMETIMES);
 
         getColumnConstraints().clear();
@@ -47,7 +44,6 @@ public class EventLogger extends GridPane {
         setConstraints(serverLabel, 1, 0);
         GridPane.setMargin(serverLabel, new Insets(0, 10, 0, 10));
         getChildren().addAll(eventLabel, serverLabel);
-        fillParent(this);
     }
 
     public void fireLogEvent(String template, Object... args) {

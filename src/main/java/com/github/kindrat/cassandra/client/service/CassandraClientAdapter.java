@@ -15,6 +15,7 @@ import org.springframework.data.cassandra.config.CassandraSessionFactoryBean;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
 import org.springframework.data.cassandra.core.cql.SessionCallback;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
@@ -81,7 +82,7 @@ public class CassandraClientAdapter {
     }
 
     public CompletableFuture<List<String>> getAllKeyspaces(String url, @Nullable String username,
-            @Nullable String password) {
+                                                           @Nullable String password) {
         ConnectionData connectionData = new ConnectionData(url, "system_schema", username, password);
         return connect(connectionData)
                 .thenApply(template -> template.select("SELECT keyspace_name FROM keyspaces", String.class));
@@ -128,6 +129,12 @@ public class CassandraClientAdapter {
             event.getRowValue().set(updatedColumn, event.getNewValue());
             return null;
         });
+    }
+
+    public Mono<Long> count(String table) {
+        return Mono.fromFuture(execute(format("select count(*) from {} limit 100000000")))
+                .map(ResultSet::one)
+                .map(row -> row.getLong(0));
     }
 
     public CompletableFuture<ResultSet> execute(String cql) {

@@ -105,16 +105,13 @@ graal {
 dependencyManagement {
     imports {
         mavenBom("org.springframework.boot:spring-boot-dependencies:$springBootVersion") {
-            bomProperty 'reactor-bom.version', 'Bismuth-SR8'
+            bomProperty 'reactor-bom.version', 'Californium-SR3'
         }
     }
     dependencies {
-        dependency("org.apache.commons:commons-lang3:3.8.1")
-        dependency("io.projectreactor:reactor-core:3.0.7.RELEASE")
-        dependency("io.projectreactor.addons:reactor-test:3.0.6.RELEASE")
-
+//        dependency("org.apache.commons:commons-lang3:3.8.1")
         // overrides
-        dependency("org.assertj:assertj-core:3.6.1")
+//        dependency("org.assertj:assertj-core:3.6.1")
         // cassandra driver depends on old guava futures
         dependency("com.google.guava:guava:19.0")
     }
@@ -126,6 +123,9 @@ dependencies {
     compile("com.github.nginate:commons-lang:1.0.0")
     compile("com.fasterxml.jackson.core:jackson-databind")
     compile("org.hibernate:hibernate-core")
+    compile("org.apache.commons:commons-csv:1.6")
+
+    compile("io.projectreactor:reactor-core")
 
     compile("org.openjfx:javafx-controls:$openFxVersion:$platform")
     compile("org.openjfx:javafx-fxml:$openFxVersion:$platform")
@@ -149,6 +149,7 @@ dependencies {
 
     testCompile("org.springframework.boot:spring-boot-starter-data-cassandra")
     testCompile("org.springframework.boot:spring-boot-starter-test")
+    testCompile("io.projectreactor:reactor-test")
     testCompile("org.testng:testng:6.14.3")
 }
 

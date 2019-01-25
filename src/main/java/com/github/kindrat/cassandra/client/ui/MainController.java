@@ -4,23 +4,30 @@ import com.datastax.driver.core.AbstractTableMetadata;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.TableMetadata;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
+import com.github.kindrat.cassandra.client.service.BackgroundTaskExecutor;
 import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
 import com.github.kindrat.cassandra.client.service.TableContext;
+import com.github.kindrat.cassandra.client.service.tasks.CsvWriteBackgroundTask;
 import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
+import com.github.kindrat.cassandra.client.ui.widget.DataExportWidget;
+import com.github.kindrat.cassandra.client.ui.window.editor.main.BackgroundTaskMonitor;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.EventLogger;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.TableDataGridPane;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DdlTextArea;
 import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
 import javafx.collections.ObservableMap;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.cassandra.core.CassandraAdminTemplate;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
 import java.util.Map;
@@ -51,11 +58,15 @@ public class MainController {
     @Autowired
     private CassandraClientAdapter clientAdapter;
     @Autowired
+    private BackgroundTaskExecutor backgroundTaskExecutor;
+    @Autowired
     private View view;
     @Autowired
     private TablePanel tablePanel;
     @Autowired
     private EventLogger eventLogger;
+    @Autowired
+    private BackgroundTaskMonitor backgroundTaskMonitor;
 
     private Map<String, TableMetadata> tableMetadata;
     private DdlTextArea ddlTextArea;
@@ -107,8 +118,10 @@ public class MainController {
         editorAnchor.getChildren().add(ddlTextArea);
         editorAnchor.getChildren().add(tableDataGridPane);
 
-        eventAnchor.getChildren().add(eventLogger);
-        eventLogger.setVisible(true);
+        HBox eventBox = new HBox(eventLogger, backgroundTaskMonitor);
+        eventBox.setAlignment(Pos.BASELINE_CENTER);
+        eventAnchor.getChildren().add(eventBox);
+        eventLogger.prefWidthProperty().bind(eventAnchor.widthProperty().multiply(0.9));
         disable(queryTextField, runButton, tablePanel);
     }
 
@@ -125,6 +138,20 @@ public class MainController {
     public void showDataForTable(String tableName) {
         eventLogger.fireLogEvent("Loading data for table '{}'", tableName);
         showDataRows(fullTable(tableName, tableMetadata.get(tableName), clientAdapter, pageSize));
+    }
+
+
+    public void exportDataForTable(String tableName) {
+        eventLogger.fireLogEvent("Exporting data for table '{}'", tableName);
+        DataExportWidget dataExporter = (DataExportWidget) beanFactory.getBean("dataExporter", tableName);
+        dataExporter.getMetadata()
+                .map(metadata -> new CsvWriteBackgroundTask(metadata, clientAdapter))
+                .map(backgroundTaskExecutor::submit)
+                .map(uuid -> Mono.just(uuid)
+                        .doOnNext(backgroundTaskMonitor::addTask)
+                        .doOnError(throwable -> backgroundTaskMonitor.remove(uuid))
+                        .doOnError(throwable -> log.error("Task {} failed", uuid, throwable)))
+                .subscribe();
     }
 
     public void loadTables(ConnectionData connection) {

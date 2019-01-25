@@ -6,7 +6,6 @@ import com.github.kindrat.cassandra.client.ui.MainController;
 import com.github.kindrat.cassandra.client.util.UIUtil;
 import javafx.collections.ObservableList;
 import javafx.geometry.Orientation;
-import javafx.scene.control.ContextMenu;
 import javafx.scene.control.SplitPane;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.layout.AnchorPane;
@@ -19,7 +18,7 @@ import java.util.function.Consumer;
 public class TablePanel extends AnchorPane implements BeanFactoryAware {
     private final TableListView tableListView;
     private final TableButtons buttons;
-    private final ContextMenu tableContext;
+    private final TableListContext tableContext;
     private final MainController controller;
 
     public TablePanel(UIProperties uiProperties, MessageByLocaleService localeService, MainController controller) {
@@ -36,7 +35,10 @@ public class TablePanel extends AnchorPane implements BeanFactoryAware {
         UIUtil.fillParent(splitPane);
         getChildren().add(splitPane);
 
-        tableContext = new TableListContext(localeService, this::tryLoadDDL, this::tryLoadData);
+        tableContext = new TableListContext(localeService);
+        tableContext.onDataAction(this::tryLoadData);
+        tableContext.onDdlAction(this::tryLoadDDL);
+        tableContext.onExportAction(this::tryExportData);
     }
 
     public void showTables(ObservableList<String> tables) {
@@ -80,6 +82,10 @@ public class TablePanel extends AnchorPane implements BeanFactoryAware {
 
     private void tryLoadData() {
         tableListView.getSelectedTable().ifPresent(controller::showDataForTable);
+    }
+
+    private void tryExportData() {
+        tableListView.getSelectedTable().ifPresent(controller::exportDataForTable);
     }
 
     private void onTableContextMenu(ContextMenuEvent event) {

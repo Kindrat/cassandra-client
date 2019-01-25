@@ -6,34 +6,37 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 
 class TableListContext extends ContextMenu {
-    private final MessageByLocaleService localeService;
-    private final Runnable ddlAction;
-    private final Runnable dataAction;
+    private final MenuItem ddlItem;
+    private final MenuItem dataItem;
+    private final MenuItem exportItem;
 
-    TableListContext(MessageByLocaleService localeService, Runnable ddlAction, Runnable dataAction) {
-        this.localeService = localeService;
-        this.ddlAction = ddlAction;
-        this.dataAction = dataAction;
+    TableListContext(MessageByLocaleService localeService) {
+        ddlItem = new MenuItem(localeService.getMessage("ui.editor.tables.context.ddl"));
+        dataItem = new MenuItem(localeService.getMessage("ui.editor.tables.context.data"));
+        exportItem = new MenuItem(localeService.getMessage("ui.editor.tables.context.export"));
+
         ObservableList<MenuItem> items = getItems();
-        items.add(ddlItem());
-        items.add(dataItem());
+        items.add(ddlItem);
+        items.add(dataItem);
+        items.add(exportItem);
     }
 
-    private MenuItem ddlItem() {
-        MenuItem ddl = new MenuItem(localeService.getMessage("ui.editor.tables.context.ddl"));
-        ddl.setOnAction(event -> {
-            ddlAction.run();
-            TableListContext.this.hide();
-        });
-        return ddl;
+    public void onDdlAction(Runnable action) {
+        setAction(ddlItem, action);
     }
 
-    private MenuItem dataItem() {
-        MenuItem data = new MenuItem(localeService.getMessage("ui.editor.tables.context.data"));
-        data.setOnAction(event -> {
-            dataAction.run();
+    public void onDataAction(Runnable action) {
+        setAction(dataItem, action);
+    }
+
+    public void onExportAction(Runnable action) {
+        setAction(exportItem, action);
+    }
+
+    private void setAction(MenuItem item, Runnable action) {
+        item.setOnAction(event -> {
+            action.run();
             TableListContext.this.hide();
         });
-        return data;
     }
 }
