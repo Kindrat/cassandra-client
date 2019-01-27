@@ -37,6 +37,7 @@ public class DaoTestConfiguration extends AbstractCassandraConfiguration {
         return clusterBuilder -> {
             clusterBuilder
                     .withClusterName(properties.getClusterName())
+                    .withoutJMXReporting()
                     .withPort(properties.getPort());
             if (properties.getUsername() != null) {
                 clusterBuilder.withCredentials(properties.getUsername(), properties.getPassword());
