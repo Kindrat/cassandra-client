@@ -62,6 +62,7 @@ public class CassandraClientAdapter {
             }
 
             Cluster.Builder builder = Cluster.builder()
+                    .withoutJMXReporting()
                     .addContactPoint(urlParts[0])
                     .withPort(port);
 
