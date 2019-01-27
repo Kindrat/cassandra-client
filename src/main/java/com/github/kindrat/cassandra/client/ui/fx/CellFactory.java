@@ -6,7 +6,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -21,21 +20,6 @@ public class CellFactory {
             @Override
             public T fromString(String string) {
                 return codec.parse(string);
-            }
-        });
-    }
-
-    public static <S, T extends Enum<T>> Callback<TableColumn<S, T>, TableCell<S, T>> create(Class<T> enumClass) {
-        return TextFieldTableCell.forTableColumn(new StringConverter<T>() {
-            @Override
-            public String toString(T object) {
-                return object.toString();
-            }
-
-            @Override
-            @SneakyThrows
-            public T fromString(String string) {
-                return Enum.valueOf(enumClass, string);
             }
         });
     }

@@ -28,7 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.github.kindrat.cassandra.client.ui.fx.TableColumns.buildColumn;
+import static com.github.kindrat.cassandra.client.ui.fx.TableColumns.*;
 import static com.github.kindrat.cassandra.client.util.UIUtil.computeTextContainerWidth;
 import static com.github.kindrat.cassandra.client.util.UIUtil.fillParent;
 import static java.lang.String.format;
@@ -153,14 +153,23 @@ public class TableEditWidget extends Stage {
 
         TableColumn<TableRow, Object> nameColumn = buildColumn(DataType.text(), "Name");
         nameColumn.setCellValueFactory(CellValueFactory.create(TableRow::getName));
+        bindTableColumnWidth(nameColumn, this, 0.3);
+
         TableColumn<TableRow, DataType.Name> typeColumn = buildColumn(DataType.Name.class, "Type");
         typeColumn.setCellValueFactory(CellValueFactory.create(TableRow::getType));
-        TableColumn<TableRow, Object> partitionKeyColumn = new TableColumn<>("Partition Key");
+        bindTableColumnWidth(typeColumn, this, 0.25);
+
+        TableColumn<TableRow, Boolean> partitionKeyColumn = buildCheckBoxColumn("Partition Key");
         partitionKeyColumn.setCellValueFactory(CellValueFactory.create(TableRow::getIsPartitionKey));
-        TableColumn<TableRow, Object> clusteringKeyColumn = new TableColumn<>("Clustering Key");
+        bindTableColumnWidth(partitionKeyColumn, this, 0.15);
+
+        TableColumn<TableRow, Boolean> clusteringKeyColumn = buildCheckBoxColumn("Clustering Key");
         clusteringKeyColumn.setCellValueFactory(CellValueFactory.create(TableRow::getIsClusteringKey));
-        TableColumn<TableRow, Object> indexColumn = new TableColumn<>("Index");
+        bindTableColumnWidth(clusteringKeyColumn, this, 0.15);
+
+        TableColumn<TableRow, Boolean> indexColumn = buildCheckBoxColumn("Index");
         indexColumn.setCellValueFactory(CellValueFactory.create(TableRow::getHasIndex));
+        bindTableColumnWidth(indexColumn, this, 0.15);
 
         view.getColumns().add(nameColumn);
         view.getColumns().add(typeColumn);
@@ -171,6 +180,7 @@ public class TableEditWidget extends Stage {
         view.setMinWidth(properties.getTableEditorWidth());
         view.setMaxWidth(properties.getTableEditorWidth());
         view.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        view.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         return view;
     }
 

@@ -7,7 +7,7 @@ import javafx.scene.input.MouseEvent;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class TableClickEvent<T> implements EventHandler<MouseEvent> {
+public class TableClickEventHandler<T> implements EventHandler<MouseEvent> {
     private final TableView<T> tableView;
 
     @Override

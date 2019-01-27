@@ -1,4 +1,4 @@
-package com.github.kindrat.cassandra.client.ui.eventhandler;
+package com.github.kindrat.cassandra.client.ui.listener;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;

@@ -9,10 +9,15 @@ import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DataTable
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.PaginationPanel;
 import javafx.collections.ObservableList;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.RowConstraints;
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 
 import java.util.List;
 
@@ -20,6 +25,8 @@ import static com.github.kindrat.cassandra.client.util.UIUtil.fillParent;
 import static javafx.application.Platform.runLater;
 
 public class TableDataGridPane extends GridPane {
+    private final EmitterProcessor<DataObject> processor = EmitterProcessor.create();
+    private final FluxSink<DataObject> sink = processor.sink();
     private final FilterGrid filterGrid;
     private final DataTableView dataTableView;
     private final PaginationPanel paginationPanel;
@@ -79,12 +86,27 @@ public class TableDataGridPane extends GridPane {
         dataTableView.refresh();
         filterGrid.onDataUpdated(data);
 
+        dataTableView.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.DELETE) {
+                TableView.TableViewSelectionModel<DataObject> selectionModel = dataTableView.getSelectionModel();
+                DataObject selectedItem = selectionModel.getSelectedItem();
+                int selectedIndex = selectionModel.getSelectedIndex();
+
+                data.remove(selectedIndex);
+                sink.next(selectedItem);
+            }
+        });
+
         paginationPanel.applyOnTable(context, dataObjects -> runLater(() -> {
             dataTableView.setItems(dataObjects);
             dataTableView.refresh();
         }));
 
         setVisible(true);
+    }
+
+    public Flux<DataObject> objectsToRemoveStream() {
+        return processor;
     }
 
     public TableCellCopyHandler buildCopyHandler() {

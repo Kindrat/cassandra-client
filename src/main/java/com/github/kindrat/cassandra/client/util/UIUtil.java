@@ -63,6 +63,6 @@ public class UIUtil {
         Text theText = new Text(text);
         theText.setFont(font);
         double width = theText.getBoundsInLocal().getWidth();
-        return width * 1.3;
+        return width * 1.7;
     }
 }

@@ -2,7 +2,7 @@ package com.github.kindrat.cassandra.client.ui.window.editor.main.table;
 
 import com.datastax.driver.core.TableMetadata;
 import com.github.kindrat.cassandra.client.ui.DataObject;
-import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEvent;
+import com.github.kindrat.cassandra.client.ui.eventhandler.TableClickEventHandler;
 import com.github.kindrat.cassandra.client.ui.keylistener.TableCellCopyHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
@@ -35,7 +35,7 @@ public class DataTableView extends TableView<DataObject> {
     }
 
     public void onTableSelected(TableMetadata tableMetadata) {
-        setOnMouseClicked(new TableClickEvent<>(this));
+        setOnMouseClicked(new TableClickEventHandler<>(this));
     }
 
     public TableCellCopyHandler buildCopyHandler() {

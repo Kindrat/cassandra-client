@@ -8,7 +8,7 @@ import com.github.kindrat.cassandra.client.service.BackgroundTaskExecutor;
 import com.github.kindrat.cassandra.client.service.CassandraClientAdapter;
 import com.github.kindrat.cassandra.client.service.TableContext;
 import com.github.kindrat.cassandra.client.service.tasks.CsvWriteBackgroundTask;
-import com.github.kindrat.cassandra.client.ui.eventhandler.TextFieldButtonWatcher;
+import com.github.kindrat.cassandra.client.ui.listener.TextFieldButtonWatcher;
 import com.github.kindrat.cassandra.client.ui.widget.DataExportWidget;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.BackgroundTaskMonitor;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.EventLogger;
