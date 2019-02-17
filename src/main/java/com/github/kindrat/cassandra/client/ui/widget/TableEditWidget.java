@@ -7,6 +7,7 @@ import com.github.kindrat.cassandra.client.ui.fx.CellValueFactory;
 import com.github.kindrat.cassandra.client.ui.fx.component.ToggleSwitch;
 import com.github.kindrat.cassandra.client.util.CqlUtil;
 import com.github.kindrat.cassandra.client.util.UIUtil;
+import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -15,6 +16,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
+import javafx.scene.input.PickResult;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -32,6 +34,7 @@ import static com.github.kindrat.cassandra.client.ui.fx.TableColumns.*;
 import static com.github.kindrat.cassandra.client.util.UIUtil.computeTextContainerWidth;
 import static com.github.kindrat.cassandra.client.util.UIUtil.fillParent;
 import static java.lang.String.format;
+import static javafx.beans.binding.Bindings.size;
 
 @Slf4j
 public class TableEditWidget extends Stage {
@@ -40,36 +43,50 @@ public class TableEditWidget extends Stage {
     private final Pane editorHolder = new Pane();
 
     private final ViewDataConverter viewDataConverter = new ViewDataConverter();
-    private final List<TableRow> initialValues = new ArrayList<>();
-    private final ObservableList<TableRow> rows = FXCollections.observableArrayList();
-    private final TextArea tableNameArea;
-    private final TableView<TableRow> tableEditor;
+    private final ObservableList<TableRowEntry> rows = FXCollections.observableArrayList();
     private final TextArea textView = new TextArea();
+    private final TableEditWidgetContext widgetContext;
+    private final TextArea tableNameArea;
+    private final TableView<TableRowEntry> tableView;
 
     public TableEditWidget(Stage parent, MessageByLocaleService localeService, UIProperties properties) {
         this.localeService = localeService;
         this.properties = properties;
-        this.tableEditor = buildTableView();
+        this.tableView = buildTableView();
         this.tableNameArea = buildTableArea();
+
+        ReadOnlyIntegerProperty selectedIndexProperty = tableView.getSelectionModel().selectedIndexProperty();
+        widgetContext = new TableEditWidgetContext(size(rows), selectedIndexProperty);
+        widgetContext.onDelete(() -> rows.remove(selectedIndexProperty.getValue().intValue()));
+        widgetContext.onAddAbove(() -> {
+            int index = Math.max(0, selectedIndexProperty.getValue() - 1);
+            rows.add(index, buildDefaultRow());
+        });
+        widgetContext.onAddBelow(() -> {
+            Integer selected = selectedIndexProperty.getValue();
+            if (selected == rows.size()) {
+                rows.add(buildDefaultRow());
+            } else {
+                rows.add(selected + 1, buildDefaultRow());
+            }
+        });
+        widgetContext.onMoveUp(this::moveUp);
+        widgetContext.onMoveDown(this::moveDown);
+
         setTitle(localeService.getMessage("ui.editor.table_editor.title"));
         getIcons().add(new Image("cassandra_ico.png"));
         initModality(Modality.APPLICATION_MODAL);
         initOwner(parent);
         setScene(buildScene());
-        init(Collections.emptyList());
+
+        reset();
         show();
     }
 
-    public void init(List<TableRow> rows) {
-        initialValues.addAll(rows);
-        reset();
-    }
-
-    public void reset() {
+    private void reset() {
         rows.clear();
-        rows.addAll(initialValues);
-        if (initialValues.isEmpty()) {
-            rows.add(new TableRow("name", DataType.Name.TEXT, false, false, false));
+        if (rows.isEmpty()) {
+            rows.add(buildDefaultRow());
         }
     }
 
@@ -107,12 +124,12 @@ public class TableEditWidget extends Stage {
 
         toggleSwitch.onDisabled(() -> {
             editorHolder.getChildren().clear();
-            Map.Entry<String, List<TableRow>> ddlData = viewDataConverter.fromText(textView.getText());
+            Map.Entry<String, List<TableRowEntry>> ddlData = viewDataConverter.fromText(textView.getText());
             tableNameArea.setText(ddlData.getKey());
             rows.clear();
             rows.addAll(ddlData.getValue());
             tableNameBox.setVisible(true);
-            editorHolder.getChildren().add(tableEditor);
+            editorHolder.getChildren().add(tableView);
         });
 
         Button createButton = new Button(localeService.getMessage("ui.editor.table_editor.buttons.create"));
@@ -126,15 +143,15 @@ public class TableEditWidget extends Stage {
         children.add(headerBox);
         children.add(editorHolder);
         children.add(buttons);
-        editorHolder.getChildren().add(tableEditor);
+        editorHolder.getChildren().add(tableView);
 
         dialogScene.heightProperty().addListener((observableValue, oldValue, newValue) -> {
-            tableEditor.setPrefHeight(newValue.doubleValue() - headerBox.getHeight() - buttons.getHeight());
+            tableView.setPrefHeight(newValue.doubleValue() - headerBox.getHeight() - buttons.getHeight());
             textView.setPrefHeight(newValue.doubleValue() - headerBox.getHeight() - buttons.getHeight());
         });
         dialogScene.widthProperty().addListener((observableValue, oldValue, newValue) -> {
             UIUtil.setWidth(editorHolder, newValue);
-            UIUtil.setWidth(tableEditor, newValue);
+            UIUtil.setWidth(tableView, newValue);
             UIUtil.setWidth(textView, newValue);
             UIUtil.setWidth(buttons, newValue);
         });
@@ -147,29 +164,29 @@ public class TableEditWidget extends Stage {
         return dialogScene;
     }
 
-    private TableView<TableRow> buildTableView() {
-        rows.add(new TableRow("changeme", DataType.Name.TEXT, false, false, false));
-        TableView<TableRow> view = new TableView<>(rows);
+    private TableView<TableRowEntry> buildTableView() {
+        rows.add(buildDefaultRow());
+        TableView<TableRowEntry> view = new TableView<>(rows);
 
-        TableColumn<TableRow, Object> nameColumn = buildColumn(DataType.text(), "Name");
-        nameColumn.setCellValueFactory(CellValueFactory.create(TableRow::getName));
+        TableColumn<TableRowEntry, Object> nameColumn = buildColumn(DataType.text(), "Name");
+        nameColumn.setCellValueFactory(CellValueFactory.create(TableRowEntry::getName));
         bindTableColumnWidth(nameColumn, this, 0.3);
 
-        TableColumn<TableRow, DataType.Name> typeColumn = buildColumn(DataType.Name.class, "Type");
-        typeColumn.setCellValueFactory(CellValueFactory.create(TableRow::getType));
+        TableColumn<TableRowEntry, DataType.Name> typeColumn = buildColumn(DataType.Name.class, "Type");
+        typeColumn.setCellValueFactory(CellValueFactory.create(TableRowEntry::getType));
         bindTableColumnWidth(typeColumn, this, 0.25);
 
-        TableColumn<TableRow, Boolean> partitionKeyColumn = buildCheckBoxColumn("Partition Key");
-        partitionKeyColumn.setCellValueFactory(CellValueFactory.create(TableRow::getIsPartitionKey));
-        bindTableColumnWidth(partitionKeyColumn, this, 0.15);
+        TableColumn<TableRowEntry, Boolean> partitionKeyColumn = buildCheckBoxColumn("Partition Key");
+        partitionKeyColumn.setCellValueFactory(CellValueFactory.create(TableRowEntry::getIsPartitionKey));
+        bindTableColumnWidth(partitionKeyColumn, this, 0.1);
 
-        TableColumn<TableRow, Boolean> clusteringKeyColumn = buildCheckBoxColumn("Clustering Key");
-        clusteringKeyColumn.setCellValueFactory(CellValueFactory.create(TableRow::getIsClusteringKey));
-        bindTableColumnWidth(clusteringKeyColumn, this, 0.15);
+        TableColumn<TableRowEntry, Boolean> clusteringKeyColumn = buildCheckBoxColumn("Clustering Key");
+        clusteringKeyColumn.setCellValueFactory(CellValueFactory.create(TableRowEntry::getIsClusteringKey));
+        bindTableColumnWidth(clusteringKeyColumn, this, 0.1);
 
-        TableColumn<TableRow, Boolean> indexColumn = buildCheckBoxColumn("Index");
-        indexColumn.setCellValueFactory(CellValueFactory.create(TableRow::getHasIndex));
-        bindTableColumnWidth(indexColumn, this, 0.15);
+        TableColumn<TableRowEntry, Boolean> indexColumn = buildCheckBoxColumn("Index");
+        indexColumn.setCellValueFactory(CellValueFactory.create(TableRowEntry::getHasIndex));
+        bindTableColumnWidth(indexColumn, this, 0.1);
 
         view.getColumns().add(nameColumn);
         view.getColumns().add(typeColumn);
@@ -181,7 +198,35 @@ public class TableEditWidget extends Stage {
         view.setMaxWidth(properties.getTableEditorWidth());
         view.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         view.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+
+        view.setOnContextMenuRequested(event -> {
+            TableView.TableViewSelectionModel<TableRowEntry> selectionModel = view.getSelectionModel();
+            if (!selectionModel.isEmpty() || rows.isEmpty()) {
+                widgetContext.show(view, event.getScreenX(), event.getScreenY());
+            }
+        });
+        view.setOnMouseClicked(event -> {
+            if (widgetContext.isShowing()) {
+                widgetContext.hide();
+            }
+            PickResult pickResult = event.getPickResult();
+            Node source = pickResult.getIntersectedNode();
+
+            // move up through the node hierarchy until a TableRowEntry or scene root is found
+            while (source != null && !(source instanceof TableRow)) {
+                source = source.getParent();
+            }
+
+            // clear selection on click anywhere but on a filled row
+            if (source == null || (source instanceof TableRow && ((TableRow) source).isEmpty())) {
+                view.getSelectionModel().clearSelection();
+            }
+        });
         return view;
+    }
+
+    private TableRowEntry buildDefaultRow() {
+        return new TableRowEntry(UUID.randomUUID().toString(), DataType.Name.TEXT, false, false, false);
     }
 
     private TextArea buildTableArea() {
@@ -198,10 +243,32 @@ public class TableEditWidget extends Stage {
         return "";
     }
 
+    private void moveUp() {
+        TableView.TableViewSelectionModel<TableRowEntry> selectionModel = tableView.getSelectionModel();
+        int selected = selectionModel.selectedIndexProperty().get();
+        TableRowEntry movingEntry = rows.remove(selected);
+        int newIndex = selected - 1;
+        rows.add(newIndex, movingEntry);
+        selectionModel.select(newIndex);
+    }
+
+    private void moveDown() {
+        TableView.TableViewSelectionModel<TableRowEntry> selectionModel = tableView.getSelectionModel();
+        int selected = selectionModel.selectedIndexProperty().get();
+        TableRowEntry movingEntry = rows.remove(selected);
+        int newIndex = selected + 1;
+        if (newIndex == rows.size()) {
+            rows.add(movingEntry);
+        } else {
+            rows.add(newIndex, movingEntry);
+        }
+        selectionModel.select(newIndex);
+    }
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    private static class TableRow {
+    private static class TableRowEntry {
         private String name;
         private DataType.Name type;
         private Boolean isPartitionKey;
@@ -213,50 +280,50 @@ public class TableEditWidget extends Stage {
         private static final Pattern TABLE_PATTERN = Pattern.compile("([cC][rR][eE][aA][tT][eE])(\\s+)([tT][aA][bB][lL][eE])(\\s+)(.*)(\\s+)(\\()([.\\s\\S]*)(\\))");
         private static final Pattern ROW_PATTERN = Pattern.compile("(\\s+)([a-zA-Z]+)(\\s+)([a-zA-Z]+)(\\s*)");
 
-        Map.Entry<String, List<TableRow>> fromText(String text) {
+        Map.Entry<String, List<TableRowEntry>> fromText(String text) {
             Matcher matcher = TABLE_PATTERN.matcher(text);
             boolean tableValid = matcher.find();
             if (tableValid) {
                 String tableName = matcher.group(5);
                 String rows = matcher.group(8);
                 String[] separateRawRows = rows.split(",");
-                List<TableRow> tableRows = Arrays.stream(separateRawRows)
+                List<TableRowEntry> tableRowEntries = Arrays.stream(separateRawRows)
                         .filter(row -> ROW_PATTERN.matcher(row).find())
                         .map(this::fromString)
                         .collect(Collectors.toList());
 
-                return new AbstractMap.SimpleEntry<>(tableName, tableRows);
+                return new AbstractMap.SimpleEntry<>(tableName, tableRowEntries);
             }
             return new AbstractMap.SimpleEntry<>("", Collections.emptyList());
         }
 
-        TableRow fromString(String rawRow) {
+        TableRowEntry fromString(String rawRow) {
             Matcher matcher = ROW_PATTERN.matcher(rawRow);
             boolean matches = matcher.find();
             if (matches) {
                 String name = matcher.group(2);
                 String type = matcher.group(4);
-                TableRow tableRow = new TableRow();
-                tableRow.setName(name);
-                tableRow.setType(DataType.Name.valueOf(type.toUpperCase()));
-                tableRow.setHasIndex(false);
-                tableRow.setIsClusteringKey(false);
-                tableRow.setIsPartitionKey(false);
-                return tableRow;
+                TableRowEntry tableRowEntry = new TableRowEntry();
+                tableRowEntry.setName(name);
+                tableRowEntry.setType(DataType.Name.valueOf(type.toUpperCase()));
+                tableRowEntry.setHasIndex(false);
+                tableRowEntry.setIsClusteringKey(false);
+                tableRowEntry.setIsPartitionKey(false);
+                return tableRowEntry;
             } else {
                 throw new IllegalStateException("Regex match should happens before");
             }
         }
 
-        String toText(List<TableRow> rows, String table) {
+        String toText(List<TableRowEntry> rows, String table) {
             List<String> rowDefinitions = rows.stream()
-                    .map(tableRow -> format("%s %s", tableRow.getName(), tableRow.getType()))
+                    .map(tableRowEntry -> format("%s %s", tableRowEntry.getName(), tableRowEntry.getType()))
                     .collect(Collectors.toList());
 
             rows.stream()
-                    .filter(tableRow -> tableRow.getIsClusteringKey() || tableRow.getIsPartitionKey())
-                    .sorted((o1, o2) -> Comparator.comparing(TableRow::getIsPartitionKey).compare(o1, o2))
-                    .map(TableRow::getName)
+                    .filter(tableRowEntry -> tableRowEntry.getIsClusteringKey() || tableRowEntry.getIsPartitionKey())
+                    .sorted((o1, o2) -> Comparator.comparing(TableRowEntry::getIsPartitionKey).compare(o1, o2))
+                    .map(TableRowEntry::getName)
                     .reduce((s, s2) -> s + ", " + s2)
                     .ifPresent(s -> rowDefinitions.add(String.format("PRIMARY KEY (%s)", s)));
 

@@ -38,10 +38,7 @@ public class TableColumns {
         TableColumn<T, Boolean> tableColumn = new TableColumn<>();
         Label label = new Label(labelText);
 
-        tableColumn.setCellFactory(param -> {
-            CheckBoxTableCell<T, Boolean> cell = new CheckBoxTableCell<>();
-            return cell;
-        });
+        tableColumn.setCellFactory(param -> new CheckBoxTableCell<>());
         tableColumn.setGraphic(label);
         tableColumn.setMinWidth(computeTextContainerWidth(label.getText(), label.getFont()));
         return tableColumn;
