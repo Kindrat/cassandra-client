@@ -278,7 +278,7 @@ public class TableEditWidget extends Stage {
 
     private static class ViewDataConverter {
         private static final Pattern TABLE_PATTERN = Pattern.compile("([cC][rR][eE][aA][tT][eE])(\\s+)([tT][aA][bB][lL][eE])(\\s+)(.*)(\\s+)(\\()([.\\s\\S]*)(\\))");
-        private static final Pattern ROW_PATTERN = Pattern.compile("(\\s+)([a-zA-Z]+)(\\s+)([a-zA-Z]+)(\\s*)");
+        private static final Pattern ROW_PATTERN = Pattern.compile("([\"\\-0-9a-zA-Z]+)(\\s+)([a-zA-Z]+)(\\s*)");
 
         Map.Entry<String, List<TableRowEntry>> fromText(String text) {
             Matcher matcher = TABLE_PATTERN.matcher(text);
@@ -288,6 +288,7 @@ public class TableEditWidget extends Stage {
                 String rows = matcher.group(8);
                 String[] separateRawRows = rows.split(",");
                 List<TableRowEntry> tableRowEntries = Arrays.stream(separateRawRows)
+                        .map(String::trim)
                         .filter(row -> ROW_PATTERN.matcher(row).find())
                         .map(this::fromString)
                         .collect(Collectors.toList());
@@ -301,8 +302,8 @@ public class TableEditWidget extends Stage {
             Matcher matcher = ROW_PATTERN.matcher(rawRow);
             boolean matches = matcher.find();
             if (matches) {
-                String name = matcher.group(2);
-                String type = matcher.group(4);
+                String name = matcher.group(1);
+                String type = matcher.group(3);
                 TableRowEntry tableRowEntry = new TableRowEntry();
                 tableRowEntry.setName(name);
                 tableRowEntry.setType(DataType.Name.valueOf(type.toUpperCase()));
