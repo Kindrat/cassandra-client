@@ -1,11 +1,10 @@
-package com.github.kindrat.cassandra.client.ui.widget;
+package com.github.kindrat.cassandra.client.ui.widget.tableedit;
 
 import com.datastax.driver.core.DataType;
 import com.github.kindrat.cassandra.client.i18n.MessageByLocaleService;
 import com.github.kindrat.cassandra.client.properties.UIProperties;
 import com.github.kindrat.cassandra.client.ui.fx.CellValueFactory;
 import com.github.kindrat.cassandra.client.ui.fx.component.ToggleSwitch;
-import com.github.kindrat.cassandra.client.util.CqlUtil;
 import com.github.kindrat.cassandra.client.util.UIUtil;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.collections.FXCollections;
@@ -20,20 +19,15 @@ import javafx.scene.input.PickResult;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.Collection;
+import java.util.Map;
+import java.util.UUID;
 
 import static com.github.kindrat.cassandra.client.ui.fx.TableColumns.*;
 import static com.github.kindrat.cassandra.client.util.UIUtil.computeTextContainerWidth;
 import static com.github.kindrat.cassandra.client.util.UIUtil.fillParent;
-import static java.lang.String.format;
 import static javafx.beans.binding.Bindings.size;
 
 @Slf4j
@@ -124,7 +118,7 @@ public class TableEditWidget extends Stage {
 
         toggleSwitch.onDisabled(() -> {
             editorHolder.getChildren().clear();
-            Map.Entry<String, List<TableRowEntry>> ddlData = viewDataConverter.fromText(textView.getText());
+            Map.Entry<String, Collection<TableRowEntry>> ddlData = viewDataConverter.fromText(textView.getText());
             tableNameArea.setText(ddlData.getKey());
             rows.clear();
             rows.addAll(ddlData.getValue());
@@ -170,22 +164,24 @@ public class TableEditWidget extends Stage {
 
         TableColumn<TableRowEntry, Object> nameColumn = buildColumn(DataType.text(), "Name");
         nameColumn.setCellValueFactory(CellValueFactory.create(TableRowEntry::getName));
+        nameColumn.setOnEditCommit(event -> event.getRowValue().setName(event.getNewValue().toString()));
         bindTableColumnWidth(nameColumn, this, 0.3);
 
         TableColumn<TableRowEntry, DataType.Name> typeColumn = buildColumn(DataType.Name.class, "Type");
         typeColumn.setCellValueFactory(CellValueFactory.create(TableRowEntry::getType));
+        typeColumn.setOnEditCommit(event -> event.getRowValue().setType(event.getNewValue()));
         bindTableColumnWidth(typeColumn, this, 0.25);
 
-        TableColumn<TableRowEntry, Boolean> partitionKeyColumn = buildCheckBoxColumn("Partition Key");
-        partitionKeyColumn.setCellValueFactory(CellValueFactory.create(TableRowEntry::getIsPartitionKey));
+        TableColumn<TableRowEntry, Boolean> partitionKeyColumn =
+                buildCheckBoxColumn("Partition Key", TableRowEntry::getIsPartitionKeyProperty);
         bindTableColumnWidth(partitionKeyColumn, this, 0.1);
 
-        TableColumn<TableRowEntry, Boolean> clusteringKeyColumn = buildCheckBoxColumn("Clustering Key");
-        clusteringKeyColumn.setCellValueFactory(CellValueFactory.create(TableRowEntry::getIsClusteringKey));
+        TableColumn<TableRowEntry, Boolean> clusteringKeyColumn = buildCheckBoxColumn("Clustering Key",
+                TableRowEntry::getIsClusteringKeyProperty);
         bindTableColumnWidth(clusteringKeyColumn, this, 0.1);
 
-        TableColumn<TableRowEntry, Boolean> indexColumn = buildCheckBoxColumn("Index");
-        indexColumn.setCellValueFactory(CellValueFactory.create(TableRowEntry::getHasIndex));
+        TableColumn<TableRowEntry, Boolean> indexColumn = buildCheckBoxColumn("Index",
+                TableRowEntry::getHasIndexProperty);
         bindTableColumnWidth(indexColumn, this, 0.1);
 
         view.getColumns().add(nameColumn);
@@ -265,72 +261,4 @@ public class TableEditWidget extends Stage {
         selectionModel.select(newIndex);
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    private static class TableRowEntry {
-        private String name;
-        private DataType.Name type;
-        private Boolean isPartitionKey;
-        private Boolean isClusteringKey;
-        private Boolean hasIndex;
-    }
-
-    private static class ViewDataConverter {
-        private static final Pattern TABLE_PATTERN = Pattern.compile("([cC][rR][eE][aA][tT][eE])(\\s+)([tT][aA][bB][lL][eE])(\\s+)(.*)(\\s+)(\\()([.\\s\\S]*)(\\))");
-        private static final Pattern ROW_PATTERN = Pattern.compile("([\"\\-0-9a-zA-Z]+)(\\s+)([a-zA-Z]+)(\\s*)");
-
-        Map.Entry<String, List<TableRowEntry>> fromText(String text) {
-            Matcher matcher = TABLE_PATTERN.matcher(text);
-            boolean tableValid = matcher.find();
-            if (tableValid) {
-                String tableName = matcher.group(5);
-                String rows = matcher.group(8);
-                String[] separateRawRows = rows.split(",");
-                List<TableRowEntry> tableRowEntries = Arrays.stream(separateRawRows)
-                        .map(String::trim)
-                        .filter(row -> ROW_PATTERN.matcher(row).find())
-                        .map(this::fromString)
-                        .collect(Collectors.toList());
-
-                return new AbstractMap.SimpleEntry<>(tableName, tableRowEntries);
-            }
-            return new AbstractMap.SimpleEntry<>("", Collections.emptyList());
-        }
-
-        TableRowEntry fromString(String rawRow) {
-            Matcher matcher = ROW_PATTERN.matcher(rawRow);
-            boolean matches = matcher.find();
-            if (matches) {
-                String name = matcher.group(1);
-                String type = matcher.group(3);
-                TableRowEntry tableRowEntry = new TableRowEntry();
-                tableRowEntry.setName(name);
-                tableRowEntry.setType(DataType.Name.valueOf(type.toUpperCase()));
-                tableRowEntry.setHasIndex(false);
-                tableRowEntry.setIsClusteringKey(false);
-                tableRowEntry.setIsPartitionKey(false);
-                return tableRowEntry;
-            } else {
-                throw new IllegalStateException("Regex match should happens before");
-            }
-        }
-
-        String toText(List<TableRowEntry> rows, String table) {
-            List<String> rowDefinitions = rows.stream()
-                    .map(tableRowEntry -> format("%s %s", tableRowEntry.getName(), tableRowEntry.getType()))
-                    .collect(Collectors.toList());
-
-            rows.stream()
-                    .filter(tableRowEntry -> tableRowEntry.getIsClusteringKey() || tableRowEntry.getIsPartitionKey())
-                    .sorted((o1, o2) -> Comparator.comparing(TableRowEntry::getIsPartitionKey).compare(o1, o2))
-                    .map(TableRowEntry::getName)
-                    .reduce((s, s2) -> s + ", " + s2)
-                    .ifPresent(s -> rowDefinitions.add(String.format("PRIMARY KEY (%s)", s)));
-
-            String tableRows = rowDefinitions.stream().reduce((s, s2) -> s + ", " + s2).orElse("");
-            String tableRawDDL = String.format("CREATE TABLE %s (%s)", table, tableRows);
-            return CqlUtil.formatDDL(tableRawDDL);
-        }
-    }
 }

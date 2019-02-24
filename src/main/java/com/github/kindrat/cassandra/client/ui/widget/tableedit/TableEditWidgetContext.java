@@ -1,4 +1,4 @@
-package com.github.kindrat.cassandra.client.ui.widget;
+package com.github.kindrat.cassandra.client.ui.widget.tableedit;
 
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.property.Property;

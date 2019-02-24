@@ -7,11 +7,12 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 
 @UtilityClass
 public class CellFactory {
     public static <S, T> Callback<TableColumn<S, T>, TableCell<S, T>> create(TypeCodec<T> codec) {
-        return TextFieldTableCell.forTableColumn(new StringConverter<T>() {
+        return TextFieldTableCell.forTableColumn(new StringConverter<>() {
             @Override
             public String toString(T object) {
                 return codec.format(object);
@@ -19,7 +20,7 @@ public class CellFactory {
 
             @Override
             public T fromString(String string) {
-                return codec.parse(string);
+                return codec.parse(StringUtils.wrapIfMissing(string, "'"));
             }
         });
     }

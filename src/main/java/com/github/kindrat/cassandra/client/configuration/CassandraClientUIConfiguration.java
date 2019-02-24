@@ -14,7 +14,7 @@ import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterGr
 import com.github.kindrat.cassandra.client.ui.window.editor.main.filter.FilterTextField;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.DataTableView;
 import com.github.kindrat.cassandra.client.ui.window.editor.main.table.PaginationPanel;
-import com.github.kindrat.cassandra.client.ui.widget.TableEditWidget;
+import com.github.kindrat.cassandra.client.ui.widget.tableedit.TableEditWidget;
 import com.github.kindrat.cassandra.client.ui.window.editor.tables.TablePanel;
 import com.github.kindrat.cassandra.client.ui.window.menu.ConnectionDataHandler;
 import com.github.kindrat.cassandra.client.ui.window.menu.KeySpaceProvider;
@@ -24,7 +24,6 @@ import com.github.kindrat.cassandra.client.ui.window.menu.file.NewConnectionBox;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
-import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
