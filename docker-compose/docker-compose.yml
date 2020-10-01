@@ -1,9 +1,9 @@
-version: '3.2'
+version: '3.7'
 services:
 
   cassandra:
     image: cassandra:3
     ports:
-      - "19042:9042"
+      - @cassandraPort@:9042
     environment:
-      - JVM_OPTS=-Xmx512m -Xms128m
+      JVM_OPTS: -Xmx512m -Xms128m
